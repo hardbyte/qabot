@@ -56,6 +56,78 @@ The unique load shapes of cars are circle, diamond, hexagon, rectangle, and tria
 
 ```
 
+## See the intermediate steps and database queries
+
+Use the `-v` flag to see the intermediate steps and database queries:
+
+```bash
+$ qabot -d mysql+mysqldb://guest:relational@relational.fit.cvut.cz:3306/trains -q "what are the unique load shapes of cars, what are the maximum number of cars per train?" -v
+Query: what are the unique load shapes of cars, what are the maximum number of cars per train?
+Intermediate Steps: 
+  Step 1
+
+    list_tables_sql_db(
+      
+    )
+
+    Output:
+    trains, cars
+
+  Step 2
+
+    schema_sql_db(
+      trains, cars
+    )
+
+    Output:
+    CREATE TABLE trains (
+        id INTEGER(11) NOT NULL, 
+        direction VARCHAR(4), 
+        PRIMARY KEY (id)
+    )ENGINE=InnoDB DEFAULT CHARSET=latin1
+
+    SELECT * FROM 'trains' LIMIT 3;
+    id  direction
+    1   east
+    2   east
+    3   east
+
+
+    CREATE TABLE cars (
+        id INTEGER(11) NOT NULL, 
+        train_id INTEGER(11), 
+        `position` INTEGER(11), 
+        shape VARCHAR(255), 
+        len VARCHAR(255), 
+        sides VARCHAR(255), 
+        roof VARCHAR(255), 
+        wheels INTEGER(11), 
+        load_shape VARCHAR(255), 
+        load_num INTEGER(11), 
+        PRIMARY KEY (id), 
+        CONSTRAINT cars_ibfk_1 FOREIGN KEY(train_id) REFERENCES trains (id) ON DELETE CASCADE ON UPDATE CASCADE
+    )ENGINE=InnoDB DEFAULT CHARSET=latin1
+
+    SELECT * FROM 'cars' LIMIT 3;
+    id  train_id        position        shape   len     sides   roof    wheels  load_shape      load_num
+    1   1       1       rectangle       short   not_double      none    2       circle  1
+    2   1       2       rectangle       long    not_double      none    3       hexagon 1
+    3   1       3       rectangle       short   not_double      peaked  2       triangle        1
+
+  Step 3
+
+    query_sql_db(
+      SELECT load_shape, MAX(load_num) FROM cars GROUP BY load_shape
+    )
+
+    Output:
+    [('circle', 3), ('diamond', 1), ('hexagon', 1), ('rectangle', 3), ('triangle', 3)]
+
+
+Result:
+The unique load shapes of cars are circle, diamond, hexagon, rectangle, and triangle, and the maximum number of cars per train is 3.
+
+```
 
 ### Links
 - [Python library docs](https://langchain.readthedocs.io)
