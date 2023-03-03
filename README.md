@@ -3,6 +3,15 @@
 Query local csv files or databases with natural language queries powered by
 `langchain` and `openai`.
 
+Works on local CSV files:
+
+![](.github/local_csv_query.png)
+
+as well as on real databases:
+
+![](.github/external_db_query.png)
+
+
 ## Quickstart
 
 You need to set the `OPENAI_API_KEY` environment variable to your OpenAI API key, 
