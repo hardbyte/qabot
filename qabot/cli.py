@@ -1,8 +1,9 @@
 import textwrap
 from typing import List, Optional
+import warnings
 
 import typer
-from langchain.callbacks import BaseCallbackHandler, OpenAICallbackHandler
+from langchain.callbacks import OpenAICallbackHandler
 from langchain.callbacks.base import CallbackManager
 from langchain.schema import AgentAction
 from rich import print
@@ -16,6 +17,7 @@ from qabot.duckdb import create_duckdb_from_csv_files
 from qabot.sqlagent import create_agent_executor
 
 install(suppress=[typer])
+warnings.filterwarnings("ignore")
 
 INITIAL_NON_INTERACTIVE_PROMPT = "🚀 How can I help you explore your database?"
 INITIAL_INTERACTIVE_PROMPT = "[bold green] 🚀 How can I help you explore your database?"
