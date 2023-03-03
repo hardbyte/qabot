@@ -1,0 +1,31 @@
+[
+    {
+        "id": 1,
+        "name": "Abigail",
+        "address": {
+            "line1":"711-2880 Nulla St. Mankato",
+            "state":"Mississippi",
+            "zip":96522
+        }
+    },
+    {
+        "id": 2,
+        "name": "Diana",
+        "address": {
+            "line1":"P.O. Box 283 8562",
+            "line2":"Fusce Rd. Frederick",
+            "state":"Nebraska",
+            "zip":20620
+        }
+    },
+    {
+        "id": 3,
+        "name": "Jason",
+        "address": {
+            "line1": "606-3727 Ullamcorper",
+            "line2":"Street Roseville",
+            "state":"NH",
+            "zip": 11523
+        }
+    }
+]

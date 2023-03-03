@@ -13,7 +13,7 @@ from rich.traceback import install
 
 from qabot.caching import configure_caching
 from qabot.config import Settings
-from qabot.duckdb import create_duckdb_from_csv_files
+from qabot.duckdb import create_duckdb_from_files
 from qabot.sqlagent import create_agent_executor
 
 install(suppress=[typer])
@@ -83,7 +83,7 @@ def main(
         if isinstance(file, str):
             file = [file]
         print("[red]🦆[/red] [bold]Loading data from files...[/bold]")
-        database_engine = create_duckdb_from_csv_files(file)
+        database_engine = create_duckdb_from_files(file)
 
     elif database_uri is None and settings.QABOT_DATABASE_URI is None:
         raise ValueError("Must provide either database_uri or one or more files to load data from")
