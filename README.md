@@ -10,7 +10,9 @@ Works on local CSV files:
 remote CSV files:
 
 ```
-$ qabot -f https://www.stats.govt.nz/assets/Uploads/Environmental-economic-accounts/Environmental-economic-accounts-data-to-2020/renewable-energy-stock-account-2007-2020-csv.csv -q "How many Gigawatt hours of generation was there for Solar resources in 2015 through to 2020?"
+$ qabot \
+    -f https://www.stats.govt.nz/assets/Uploads/Environmental-economic-accounts/Environmental-economic-accounts-data-to-2020/renewable-energy-stock-account-2007-2020-csv.csv \
+    -q "How many Gigawatt hours of generation was there for Solar resources in 2015 through to 2020?"
 ```
 
 

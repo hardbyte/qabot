@@ -2,6 +2,7 @@ import textwrap
 from typing import List, Optional
 import warnings
 
+import langchain
 import typer
 from langchain.callbacks import OpenAICallbackHandler
 from langchain.callbacks.base import CallbackManager
@@ -13,10 +14,10 @@ from rich.traceback import install
 
 from qabot.caching import configure_caching
 from qabot.config import Settings
-from qabot.duckdb import create_duckdb_from_files
-from qabot.sqlagent import create_agent_executor
+from qabot.duckdb_manual_data_loader import create_duckdb_from_files
+from qabot.agent import create_agent_executor
 
-install(suppress=[typer])
+install(suppress=[typer, langchain], max_frames=5, show_locals=False)
 warnings.filterwarnings("ignore")
 
 INITIAL_NON_INTERACTIVE_PROMPT = "🚀 How can I help you explore your database?"
@@ -39,34 +40,38 @@ def format_agent_action(agent_action: AgentAction, observation) -> str:
 class QACallback(OpenAICallbackHandler):
     def __init__(self, *args, **kwargs):
         self.progress: Progress = kwargs.pop('progress')
-        self.chain_task_id = None
+        self.chain_task_ids = []
         self.tool_task_id = None
 
         super().__init__(*args, **kwargs)
 
     def on_chain_start(self, serialized, inputs, **kwargs):
-        self.chain_task_id = self.progress.add_task(f"on chain start")
+        self.chain_task_ids.append(self.progress.add_task(f"on chain start"))
         if 'agent_scratchpad' in inputs and len(inputs['agent_scratchpad']):
-            self.progress.update(self.chain_task_id, description=inputs['agent_scratchpad'])
+            self.progress.update(self.chain_task_ids[-1], description=inputs['agent_scratchpad'])
 
     def on_agent_action(
         self, action: AgentAction, color: Optional[str] = None, **kwargs
     ):
         """Run on agent action."""
-        print(action.log, color=color if color else self.color)
+        print(action.log)
 
     def on_chain_end(self, outputs, **kwargs):
-        self.progress.update(self.chain_task_id, description=f"[yellow]{outputs}")
-        self.progress.remove_task(self.chain_task_id)
+        super().on_chain_end(outputs, **kwargs)
+        if isinstance(outputs, dict) and 'output' in outputs:
+            outputs = outputs['output']
+
+        self.progress.update(self.chain_task_ids[-1], description=f"[yellow]{outputs}")
+        self.progress.remove_task(self.chain_task_ids.pop())
 
     def on_llm_end(self, response, **kwargs):
         print("[yellow]On llm end")
 
     def on_tool_start(self, **kwargs):
-        pass
+        print("[yellow]On tool start")
 
     def on_tool_end(self, output: str, **kwargs):
-        pass
+        print("[yellow]On tool end")
 
 def main(
         query: str = typer.Option("Describe the tables", '-q', '--query', prompt=INITIAL_NON_INTERACTIVE_PROMPT),
