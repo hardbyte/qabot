@@ -7,12 +7,20 @@ Works on local CSV files:
 
 ![](.github/local_csv_query.png)
 
+remote CSV files:
+
+```
+$ qabot -f https://www.stats.govt.nz/assets/Uploads/Environmental-economic-accounts/Environmental-economic-accounts-data-to-2020/renewable-energy-stock-account-2007-2020-csv.csv -q "How many Gigawatt hours of generation was there for Solar resources in 2015 through to 2020?"
+```
+
+
 as well as on real databases:
 
 ![](.github/external_db_query.png)
 
-as well as on remote data:
+Even on (public) data stored in S3:
 
+![](.github/external_s3_data.png)
 
 
 ## Quickstart
@@ -27,7 +35,9 @@ Install the `qabot` command line tool using pip/poetry:
 $ poetry install qabot
 ```
 
-Then run the `qabot` command with either files or a database connection string:
+Then run the `qabot` command with either files or a database connection string.
+
+## Examples
 
 ### Local CSV file/s
 
@@ -51,9 +61,7 @@ The largest family who did not survive was the Sage family, with 8 members.
  🚀 any further questions? [y/n] (y): n
 ```
 
-
-
-### Existing database
+## Database
 
 Install any required drivers for your database, e.g. `pip install psycopg2-binary` for postgres.
 
@@ -66,15 +74,15 @@ $ qabot -d mysql+mysqldb://guest:relational@relational.fit.cvut.cz:3306/trains -
 Query: what are the unique load shapes of cars, what are the maximum number of cars per train?
 Result:
 The unique load shapes of cars are circle, diamond, hexagon, rectangle, and triangle, and the maximum number of cars per train is 3.
-
 ```
 
-Note you can also supply the database connection string via the environment variable
+Note you can also supply a database connection string via the environment variable
 `QABOT_DATABASE_URI`.
 
 #### Limit the tables
 
-You can limit the tables that are queried by passing the `-t` flag. For example, to only query the `cars` table:
+You can limit the tables that are queried by passing the `-t` flag - this will save your tokens!
+For example, to only query the `cars` table:
 
 ```bash
 $ export QABOT_DATABASE_URI=mysql+mysqldb://guest:relational@relational.fit.cvut.cz:3306/trains
@@ -158,7 +166,9 @@ The unique load shapes of cars are circle, diamond, hexagon, rectangle, and tria
 
 ```
 
-## Data accessed via http
+## Data accessed via http/s3
+
+Use the `-f <url>` flag to load data from a url, e.g. a csv file on s3:
 
 ```bash
 $ qabot -f s3://covid19-lake/enigma-jhu-timeseries/csv/jhu_csse_covid_19_timeseries_merged.csv -q "how many confirmed cases are there" -v
