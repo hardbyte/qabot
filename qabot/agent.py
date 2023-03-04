@@ -39,7 +39,9 @@ def create_agent_executor(
     llm = OpenAI(temperature=0.0)
 
     calculator_chain = LLMMathChain(llm=llm, verbose=False)
-    db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
+    db_chain = SQLDatabaseChain(llm=llm, database=db,
+                                return_intermediate_steps=return_intermediate_steps,
+                                verbose=False)
 
     data_loader_chain = get_duckdb_data_loader_chain(llm=llm, database=database_engine)
 
@@ -52,10 +54,9 @@ def create_agent_executor(
         ),
         Tool(
             name="Data Lookup",
-            func=db_chain.run,
+            func=db_chain,
             description=textwrap.dedent("""useful for when you need to answer questions requiring data. 
             Input should be in the form of a natural language question containing full context.
-            
             """)
         ),
         Tool(

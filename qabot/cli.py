@@ -25,15 +25,27 @@ INITIAL_INTERACTIVE_PROMPT = "[bold green] 🚀 How can I help you explore your 
 FOLLOW_UP_PROMPT = "[bold green] 🚀 any further questions?"
 PROMPT = "[bold green] 🚀 Query"
 
+def format_intermediate_steps(intermediate_steps):
+    if isinstance(intermediate_steps, list):
+        return "\n".join(intermediate_steps)
+    else:
+        return str(intermediate_steps)
 
 def format_agent_action(agent_action: AgentAction, observation) -> str:
-    return f"""
-[red]{agent_action.tool.strip()}([/red]
-  [green]{agent_action.tool_input.strip()}[/green]
-[red])[/red]
+    result = ''
+    if isinstance(observation, dict):
+        if 'result' in observation:
+            result = observation['result']
+        if 'intermediate_steps' in observation:
+            observation = format_intermediate_steps(observation['intermediate_steps'])
 
-[bold red]Output:[/bold red]
-[blue]{observation.strip()}[/blue]
+    return f"""
+[red]{agent_action.tool.strip()}[/red]
+  [green]{agent_action.tool_input.strip()}[/green]
+
+  [blue]{str(observation).strip()}[/blue]
+
+[bold red]{result}[/bold red]
 """
 
 
