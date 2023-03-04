@@ -6,6 +6,6 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
 
     QABOT_DATABASE_URI: Optional[str] = None
-    QABOT_CACHE_DATABASE_URI = "duckdb:///llm-cache.db"
+    QABOT_CACHE_DATABASE_URI = "duckdb:///:memory:"
 
     QABOT_TABLES: Optional[List[str]]

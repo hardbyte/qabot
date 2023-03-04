@@ -1,6 +1,6 @@
 # qabot
 
-Query local csv files or databases with natural language queries powered by
+Query local or remote files or databases with natural language queries powered by
 `langchain` and `openai`.
 
 Works on local CSV files:
@@ -10,6 +10,9 @@ Works on local CSV files:
 as well as on real databases:
 
 ![](.github/external_db_query.png)
+
+as well as on remote data:
+
 
 
 ## Quickstart
@@ -46,8 +49,9 @@ Result:
 The largest family who did not survive was the Sage family, with 8 members.
 
  🚀 any further questions? [y/n] (y): n
-
 ```
+
+
 
 ### Existing database
 
@@ -79,7 +83,9 @@ $ qabot -q "what are the unique load shapes of cars?" -t cars
 The unique load shapes of cars are circle, hexagon, triangle, rectangle, and diamond.
 ```
 
-## See the intermediate steps and database queries
+## Features
+
+## Intermediate steps and database queries
 
 Use the `-v` flag to see the intermediate steps and database queries:
 
@@ -152,7 +158,19 @@ The unique load shapes of cars are circle, diamond, hexagon, rectangle, and tria
 
 ```
 
-### Links
+## Data accessed via http
+
+```bash
+$ qabot -f s3://covid19-lake/enigma-jhu-timeseries/csv/jhu_csse_covid_19_timeseries_merged.csv -q "how many confirmed cases are there" -v
+🦆 Loading data from files...
+create table jhu_csse_covid_19_timeseries_merged as select * from 's3://covid19-lake/enigma-jhu-timeseries/csv/jhu_csse_covid_19_timeseries_merged.csv';
+
+Result:
+264308334 confirmed cases
+```
+
+## Links
+
 - [Python library docs](https://langchain.readthedocs.io)
 - [Agent docs to talk to arbitrary apis via OpenAPI/Swagger](https://langchain.readthedocs.io/en/latest/modules/agents/agent_toolkits/openapi.html)
 - [Agents/Tools to talk SQL](https://langchain.readthedocs.io/en/latest/modules/agents/agent_toolkits/sql_database.html)

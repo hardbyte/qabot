@@ -140,10 +140,11 @@ def main(
 
                 print()
 
-            print("[bold red]Result:[/]\n[bold blue]" + result['output'] + "\n")
-
-            # Stop the progress before prompting for input
+            # Stop the progress before outputting result and prompting for input
             progress.stop()
+            print()
+
+            print("[bold red]Result:[/]\n[bold blue]" + result['output'] + "\n")
 
             if not Confirm.ask(FOLLOW_UP_PROMPT, default=True):
                 break
