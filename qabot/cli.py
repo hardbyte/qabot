@@ -47,7 +47,9 @@ class QACallback(OpenAICallbackHandler):
 
     def on_chain_start(self, serialized, inputs, **kwargs):
         self.chain_task_ids.append(self.progress.add_task(f"on chain start"))
-        if 'agent_scratchpad' in inputs and len(inputs['agent_scratchpad']):
+        if isinstance(serialized, dict) and 'name' in serialized:
+            self.progress.update(self.chain_task_ids[-1], description=f"[yellow]{serialized['name']}")
+        elif 'agent_scratchpad' in inputs and len(inputs['agent_scratchpad']):
             self.progress.update(self.chain_task_ids[-1], description=inputs['agent_scratchpad'])
 
     def on_agent_action(

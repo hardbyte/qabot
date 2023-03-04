@@ -3,8 +3,7 @@ import textwrap
 from langchain import LLMMathChain, OpenAI, SQLDatabase, SQLDatabaseChain
 from langchain.agents import Tool, initialize_agent
 
-from qabot.data_loader_tool import DuckDBTool
-from qabot.chain import get_duckdb_data_loader_chain
+from qabot.data_loader_chain import get_duckdb_data_loader_chain
 
 
 def create_agent_executor(
@@ -40,7 +39,7 @@ def create_agent_executor(
     llm = OpenAI(temperature=0.0)
 
     calculator_chain = LLMMathChain(llm=llm, verbose=False)
-    db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=False)
+    db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
 
     data_loader_chain = get_duckdb_data_loader_chain(llm=llm, database=database_engine)
 
