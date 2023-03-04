@@ -46,18 +46,27 @@ class QACallback(OpenAICallbackHandler):
 
     def on_chain_start(self, serialized, inputs, **kwargs):
         self.chain_task_id = self.progress.add_task(f"on chain start")
+        if 'agent_scratchpad' in inputs and len(inputs['agent_scratchpad']):
+            self.progress.update(self.chain_task_id, description=inputs['agent_scratchpad'])
+
+    def on_agent_action(
+        self, action: AgentAction, color: Optional[str] = None, **kwargs
+    ):
+        """Run on agent action."""
+        print(action.log, color=color if color else self.color)
 
     def on_chain_end(self, outputs, **kwargs):
+        self.progress.update(self.chain_task_id, description=f"[yellow]{outputs}")
         self.progress.remove_task(self.chain_task_id)
 
     def on_llm_end(self, response, **kwargs):
         print("[yellow]On llm end")
 
-    def on_tool_start(self, serialized, input_str: str, **kwargs):
-        self.tool_task_id = self.progress.add_task(f"Using tool")
+    def on_tool_start(self, **kwargs):
+        pass
 
-    def on_tool_end(self, serialized, input_str: str, **kwargs):
-        self.progress.remove_task(self.tool_task_id)
+    def on_tool_end(self, output: str, **kwargs):
+        pass
 
 def main(
         query: str = typer.Option("Describe the tables", '-q', '--query', prompt=INITIAL_NON_INTERACTIVE_PROMPT),

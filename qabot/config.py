@@ -1,7 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseSettings, AnyUrl
-
+from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     OPENAI_API_KEY: str

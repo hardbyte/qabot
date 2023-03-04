@@ -65,6 +65,20 @@ The unique load shapes of cars are circle, diamond, hexagon, rectangle, and tria
 
 ```
 
+Note you can also supply the database connection string via the environment variable
+`QABOT_DATABASE_URI`.
+
+#### Limit the tables
+
+You can limit the tables that are queried by passing the `-t` flag. For example, to only query the `cars` table:
+
+```bash
+$ export QABOT_DATABASE_URI=mysql+mysqldb://guest:relational@relational.fit.cvut.cz:3306/trains
+$ qabot -q "what are the unique load shapes of cars?" -t cars
+
+The unique load shapes of cars are circle, hexagon, triangle, rectangle, and diamond.
+```
+
 ## See the intermediate steps and database queries
 
 Use the `-v` flag to see the intermediate steps and database queries:
