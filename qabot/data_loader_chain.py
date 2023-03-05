@@ -1,7 +1,7 @@
 from langchain import LLMChain, PromptTemplate
 from langchain.agents import AgentExecutor, ZeroShotAgent
 
-from qabot.data_loader_tool import DuckDBTool
+from qabot.duckdb_execute_tool import DuckDBTool
 
 
 def get_duckdb_data_loader_chain(llm, database):
@@ -28,7 +28,7 @@ _DEFAULT_TEMPLATE = """Given a description of input data containing a url or loc
 extension (.json, .parquet, .csv), generate an appropriate table name, generate the SQL to load the
 data into a DuckDB database.
 
-CREATE TABLE test AS SELECT * FROM 'test.parquet';
+CREATE TABLE test AS SELECT * FROM 'input-file';
 
 Use the following format:
 

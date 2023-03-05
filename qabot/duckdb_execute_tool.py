@@ -1,7 +1,10 @@
+import time
 from typing import Any
 
 from langchain.tools import BaseTool
 from sqlalchemy import text
+
+from qabot.duckdb_query import run_sql_catch_error
 
 
 class DuckDBTool(BaseTool):
@@ -15,14 +18,12 @@ class DuckDBTool(BaseTool):
         self.database = engine
 
     def _run(self, query: str) -> str:
-        try:
-            res = self.database.execute(text(query))
-            print(res)
-            return res
-        except Exception as e:
-            return str(e)
+
+        time.sleep(2)
+        return run_sql_catch_error(self.database, query)
+
 
     async def _arun(self, query: str) -> str:
-        raise NotImplementedError("Data Loader does not support async")
+        raise NotImplementedError("DuckDBTool does not support async")
 
 

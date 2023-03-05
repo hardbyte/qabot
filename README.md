@@ -1,7 +1,7 @@
 # qabot
 
-Query local or remote files or databases with natural language queries powered by
-`langchain` and `openai`.
+Query local or remote files with natural language queries powered by
+`langchain` and `gpt-3.5-turbo` and `duckdb` 🦆.
 
 Works on local CSV files:
 
@@ -15,10 +15,6 @@ $ qabot \
     -q "How many Gigawatt hours of generation was there for Solar resources in 2015 through to 2020?"
 ```
 
-
-as well as on real databases:
-
-![](.github/external_db_query.png)
 
 Even on (public) data stored in S3:
 
@@ -34,10 +30,15 @@ Install the `qabot` command line tool using pip/poetry:
 
 
 ```bash
-$ poetry install qabot
+$ pip install qabot
 ```
 
-Then run the `qabot` command with either files or a database connection string.
+Then run the `qabot` command with either local files (`-f my-file.csv`) or a database connection string.
+
+Note if you want to use a database, you will need to install the relevant drivers, 
+e.g. `pip install psycopg2-binary` for postgres.
+
+
 
 ## Examples
 
@@ -63,109 +64,221 @@ The largest family who did not survive was the Sage family, with 8 members.
  🚀 any further questions? [y/n] (y): n
 ```
 
-## Database
-
-Install any required drivers for your database, e.g. `pip install psycopg2-binary` for postgres.
-
-For example to connect and query directly from the trains database in the [relational dataset repository](https://relational.fit.cvut.cz/dataset/Trains):
-
-```bash
-$ pip install mysqlclient
-
-$ qabot -d mysql+mysqldb://guest:relational@relational.fit.cvut.cz:3306/trains -q "what are the unique load shapes of cars, what are the maximum number of cars per train?" 
-Query: what are the unique load shapes of cars, what are the maximum number of cars per train?
-Result:
-The unique load shapes of cars are circle, diamond, hexagon, rectangle, and triangle, and the maximum number of cars per train is 3.
-```
-
-Note you can also supply a database connection string via the environment variable
-`QABOT_DATABASE_URI`.
-
-#### Limit the tables
-
-You can limit the tables that are queried by passing the `-t` flag - this will save your tokens!
-For example, to only query the `cars` table:
-
-```bash
-$ export QABOT_DATABASE_URI=mysql+mysqldb://guest:relational@relational.fit.cvut.cz:3306/trains
-$ qabot -q "what are the unique load shapes of cars?" -t cars
-
-The unique load shapes of cars are circle, hexagon, triangle, rectangle, and diamond.
-```
-
-## Features
 
 ## Intermediate steps and database queries
 
-Use the `-v` flag to see the intermediate steps and database queries:
+Use the `-v` flag to see the intermediate steps and database queries.
 
-```bash
-$ qabot -d mysql+mysqldb://guest:relational@relational.fit.cvut.cz:3306/trains -q "what are the unique load shapes of cars, what are the maximum number of cars per train?" -v
-Query: what are the unique load shapes of cars, what are the maximum number of cars per train?
+Sometimes it takes a long route to get to the answer, but it's interesting to see how it gets there:
+
+
+```
+qabot -f data/titanic.csv -q "how many passengers survived by gender?" -v
+🦆 Loading data from files...
+Query: how many passengers survived by gender?
+I need to check the columns in the 'titanic' table to see which ones contain gender and survival information.
+Action: Describe Table
+Action Input: titanic
+
+Observation: titanic
+
+┌─────────────┬─────────────┬─────────┬─────────┬─────────┬───────┐
+│ column_name │ column_type │  null   │   key   │ default │ extra │
+│   varchar   │   varchar   │ varchar │ varchar │ varchar │ int32 │
+├─────────────┼─────────────┼─────────┼─────────┼─────────┼───────┤
+│ PassengerId │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+│ Survived    │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+│ Pclass      │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+│ Name        │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+│ Sex         │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+│ Age         │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
+│ SibSp       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+│ Parch       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+│ Ticket      │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+│ Fare        │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
+│ Cabin       │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+│ Embarked    │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+├─────────────┴─────────────┴─────────┴─────────┴─────────┴───────┤
+│ 12 rows                                               6 columns │
+└─────────────────────────────────────────────────────────────────┘
+
+I need to create a view that only includes the columns I need for this question.
+Action: Data Op
+Action Input: 
+        CREATE VIEW titanic_gender_survival AS
+        SELECT Sex, Survived
+        FROM titanic
+Thought:
+
+> Entering new AgentExecutor chain...
+This is a valid SQL query creating a view. We can execute it directly.
+Action: execute
+Action Input: 
+        CREATE VIEW titanic_gender_survival AS
+        SELECT Sex, Survived
+        FROM titanic
+Observation: No output
+Thought:The view has been created successfully. We can now query it.
+Action: execute
+Action Input: SELECT * FROM titanic_gender_survival LIMIT 5
+Observation: 
+┌─────────┬──────────┐
+│   Sex   │ Survived │
+│ varchar │  int64   │
+├─────────┼──────────┤
+│ male    │        0 │
+│ female  │        1 │
+│ female  │        1 │
+│ female  │        1 │
+│ male    │        0 │
+└─────────┴──────────┘
+
+Thought:The view has been created successfully and we can see the first 5 rows of the view. The final answer is the first 5 rows of the titanic_gender_survival view, showing the sex and survival status of passengers on the 
+Titanic.
+Final Answer: 
+┌─────────┬──────────┐
+│   Sex   │ Survived │
+│ varchar │  int64   │
+├─────────┼──────────┤
+│ male    │        0 │
+│ female  │        1 │
+│ female  │        1 │
+│ female  │        1 │
+│ male    │        0 │
+└─────────┴──────────┘
+
+> Finished chain.
+
+Observation: ┌─────────┬──────────┐
+│   Sex   │ Survived │
+│ varchar │  int64   │
+├─────────┼──────────┤
+│ male    │        0 │
+│ female  │        1 │
+│ female  │        1 │
+│ female  │        1 │
+│ male    │        0 │
+└─────────┴──────────┘
+I need to group the data by gender and count the number of survivors for each group.
+Action: Data Op
+Action Input: 
+        SELECT Sex, SUM(Survived) AS num_survived
+        FROM titanic_gender_survival
+        GROUP BY Sex
+Thought:
+
+> Entering new AgentExecutor chain...
+We need to check if the table titanic_gender_survival exists and if it has the columns Sex and Survived.
+Action: Describe Table
+Action Input: titanic_gender_survival
+Observation: titanic_gender_survival
+
+┌─────────────┬─────────────┬─────────┬─────────┬─────────┬───────┐
+│ column_name │ column_type │  null   │   key   │ default │ extra │
+│   varchar   │   varchar   │ varchar │ varchar │ varchar │ int32 │
+├─────────────┼─────────────┼─────────┼─────────┼─────────┼───────┤
+│ Sex         │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+│ Survived    │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+└─────────────┴─────────────┴─────────┴─────────┴─────────┴───────┘
+
+Thought:The table titanic_gender_survival exists and has the columns Sex and Survived. We can now run the query.
+Action: execute
+Action Input: 
+```
+SELECT Sex, SUM(Survived) AS num_survived
+FROM titanic_gender_survival
+GROUP BY Sex
+LIMIT 5
+```
+
+Observation: 
+┌─────────┬──────────────┐
+│   Sex   │ num_survived │
+│ varchar │    int128    │
+├─────────┼──────────────┤
+│ male    │          109 │
+│ female  │          233 │
+└─────────┴──────────────┘
+
+Thought:The query returned the number of survivors grouped by gender. The table titanic_gender_survival has been used. 
+Final Answer: The number of survivors grouped by gender are: 
+- 109 males survived
+- 233 females survived.
+
+> Finished chain.
+
+Observation: The number of survivors grouped by gender are: 
+- 109 males survived
+- 233 females survived.
 Intermediate Steps: 
   Step 1
 
-    list_tables_sql_db(
-      
-    )
+    Describe Table
+      titanic
 
-    Output:
-    trains, cars
+      titanic
+
+    ┌─────────────┬─────────────┬─────────┬─────────┬─────────┬───────┐
+    │ column_name │ column_type │  null   │   key   │ default │ extra │
+    │   varchar   │   varchar   │ varchar │ varchar │ varchar │ int32 │
+    ├─────────────┼─────────────┼─────────┼─────────┼─────────┼───────┤
+    │ PassengerId │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+    │ Survived    │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+    │ Pclass      │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+    │ Name        │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+    │ Sex         │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+    │ Age         │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
+    │ SibSp       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+    │ Parch       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
+    │ Ticket      │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+    │ Fare        │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
+    │ Cabin       │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+    │ Embarked    │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
+    ├─────────────┴─────────────┴─────────┴─────────┴─────────┴───────┤
+    │ 12 rows                                               6 columns │
+    └─────────────────────────────────────────────────────────────────┘
+
+    
 
   Step 2
 
-    schema_sql_db(
-      trains, cars
-    )
+    Data Op
+      CREATE VIEW titanic_gender_survival AS
+            SELECT Sex, Survived
+            FROM titanic
 
-    Output:
-    CREATE TABLE trains (
-        id INTEGER(11) NOT NULL, 
-        direction VARCHAR(4), 
-        PRIMARY KEY (id)
-    )ENGINE=InnoDB DEFAULT CHARSET=latin1
+      ┌─────────┬──────────┐
+    │   Sex   │ Survived │
+    │ varchar │  int64   │
+    ├─────────┼──────────┤
+    │ male    │        0 │
+    │ female  │        1 │
+    │ female  │        1 │
+    │ female  │        1 │
+    │ male    │        0 │
+    └─────────┴──────────┘
 
-    SELECT * FROM 'trains' LIMIT 3;
-    id  direction
-    1   east
-    2   east
-    3   east
-
-
-    CREATE TABLE cars (
-        id INTEGER(11) NOT NULL, 
-        train_id INTEGER(11), 
-        `position` INTEGER(11), 
-        shape VARCHAR(255), 
-        len VARCHAR(255), 
-        sides VARCHAR(255), 
-        roof VARCHAR(255), 
-        wheels INTEGER(11), 
-        load_shape VARCHAR(255), 
-        load_num INTEGER(11), 
-        PRIMARY KEY (id), 
-        CONSTRAINT cars_ibfk_1 FOREIGN KEY(train_id) REFERENCES trains (id) ON DELETE CASCADE ON UPDATE CASCADE
-    )ENGINE=InnoDB DEFAULT CHARSET=latin1
-
-    SELECT * FROM 'cars' LIMIT 3;
-    id  train_id        position        shape   len     sides   roof    wheels  load_shape      load_num
-    1   1       1       rectangle       short   not_double      none    2       circle  1
-    2   1       2       rectangle       long    not_double      none    3       hexagon 1
-    3   1       3       rectangle       short   not_double      peaked  2       triangle        1
+    
 
   Step 3
 
-    query_sql_db(
-      SELECT load_shape, MAX(load_num) FROM cars GROUP BY load_shape
-    )
+    Data Op
+      SELECT Sex, SUM(Survived) AS num_survived
+            FROM titanic_gender_survival
+            GROUP BY Sex
 
-    Output:
-    [('circle', 3), ('diamond', 1), ('hexagon', 1), ('rectangle', 3), ('triangle', 3)]
+      The number of survivors grouped by gender are: 
+    - 109 males survived
+    - 233 females survived.
+
+    
+
+
+Thought:
 
 
 Result:
-The unique load shapes of cars are circle, diamond, hexagon, rectangle, and triangle, and the maximum number of cars per train is 3.
-
+109 males and 233 females survived.
 ```
 
 ## Data accessed via http/s3
