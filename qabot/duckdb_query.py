@@ -5,6 +5,9 @@ def run_sql_catch_error(conn, sql: str):
     # Remove any backtics from the string
     sql = sql.replace("`", "")
 
+    # If there are multiple statements, only run the first one
+    sql = sql.split(";")[0]
+
     try:
 
         output = conn.sql(sql)

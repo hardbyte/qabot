@@ -83,13 +83,13 @@ def create_agent_executor(
             including what tables and columns are relevant to the question. Use only after data is present and loaded.
             """,)
         ),
-        Tool(
-            name="Data Loader",
-            func=data_loader_chain.run,
-            description="""useful for when you need to load data from a specific local or remote file. 
-            Files can be a csv, json, sqlite, or parquet.
-            """
-        )
+        # Tool(
+        #     name="Data Loader",
+        #     func=data_loader_chain.run,
+        #     description="""useful for when you need to load data from a specific local or remote file.
+        #     Files can be a csv, json, sqlite, or parquet.
+        #     """
+        # )
     ]
 
 

@@ -48,15 +48,15 @@ def get_duckdb_data_query_chain(llm, database):
 
 
 prefix = """Given an input question, identify the relevant tables and relevant columns, then create
-one or more syntactically correct DuckDB queries to run before returning the answer. If the input is
+one single syntactically correct DuckDB query to run before returning the answer. If the input is
 a valid looking SQL query selecting data or creating a view, execute it directly. 
 
 Before answering, you MUST show the tables to make sure you specify the correct table.
 Before answering, you MUST query the database for any data. Check the available columns and tables 
 exist first. Refuse to delete any data, or drop tables.
  
-Unless the user specifies in their question a specific number of examples to obtain, always limit your query
-to at most 5 results. You can order the results by a relevant column to return the most interesting 
+Unless the user specifies in their question a specific number of examples to obtain, you always limit
+your query to at most 5 results. You can order the results by a relevant column to return the most interesting 
 examples in the database.
 
 Never query for all the columns from a specific table, only ask for the relevant columns given the question.
@@ -64,9 +64,24 @@ Never query for all the columns from a specific table, only ask for the relevant
 Pay attention to use only the column names that you can see in the schema description. Be careful 
 to not query for columns that do not exist. Also, pay attention to which column is in which table.
 
-Queries should be output across multiple lines for readability and don't use any escape characters. 
+You always provide the SQL queries you ran as part of your final answer. An example final 
+answer:
+```
+Final Answer: There were 109 male passengers who survived.
+The following SQL queries were executed to obtain the result:
+- SELECT Sex, Survived FROM titanic limit 5;
+- CREATE VIEW male_survivors AS SELECT * FROM titanic WHERE Sex = 'male' AND Survived = 1;`
+- select count(*) from male_survivors
+```
 
-You always provide evidence with your final answer including the SQL queries you ran.
+In the case of a query that returns no results, you should output a summary as your final answer:
+```
+Final Answer: The data has been written to a parquet file at 'data/titanic_gender_survival.parquet'
+ The following SQL queries were executed to obtain the result:
+- COPY (select * from titanic) TO 'data/titanic_gender_survival.parquet' (FORMAT PARQUET);
+```
+
+Queries should be output across multiple lines for readability and don't use any escape characters. 
 
 You have access to the following tools:
 """

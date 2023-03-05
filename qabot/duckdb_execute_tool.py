@@ -19,7 +19,8 @@ class DuckDBTool(BaseTool):
 
     def _run(self, query: str) -> str:
 
-        time.sleep(2)
+        #time.sleep(2)
+        #print(query)
         return run_sql_catch_error(self.database, query)
 
 

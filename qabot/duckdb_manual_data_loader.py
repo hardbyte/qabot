@@ -2,7 +2,7 @@ import os
 from typing import Tuple
 from urllib.parse import urlparse
 import duckdb
-from sqlalchemy.exc import ProgrammingError
+from duckdb import ParserException, ProgrammingError
 
 
 def uri_validator(x):
@@ -48,7 +48,7 @@ def load_external_data_into_db(conn: duckdb.DuckDBPyConnection, file_path, allow
     try:
         conn.sql(f"create table t_{table_name} as select 1;")
         conn.sql(f"drop table t_{table_name};")
-    except ProgrammingError as e:
+    except (ParserException, ProgrammingError) as e:
         table_name = "data"
 
     # The SQLAgent doesn't appear to see view's just yet, so we'll create a table instead
