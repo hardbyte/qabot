@@ -32,11 +32,14 @@ def format_intermediate_steps(intermediate_steps):
     else:
         return str(intermediate_steps)
 
+
 def format_agent_action(agent_action: AgentAction, observation) -> str:
     result = ''
     if isinstance(observation, dict):
         if 'result' in observation:
             result = observation['result']
+        elif 'output' in observation:
+            result = observation['output']
         if 'intermediate_steps' in observation:
             observation = format_intermediate_steps(observation['intermediate_steps'])
 
