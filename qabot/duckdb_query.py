@@ -11,10 +11,15 @@ def run_sql_catch_error(conn, sql: str):
     try:
 
         output = conn.sql(sql)
+
         if output is None:
             rendered_output = "No output"
         else:
-            rendered_output = '\n' + str(output)
+            try:
+                rendered_data = '\n'.join(str(row) for row in output.fetchall())
+                rendered_output = ','.join(output.columns) + '\n' + rendered_data
+            except AttributeError:
+                rendered_output = str(output)
         return rendered_output
     except duckdb.ProgrammingError as e:
         return str(e)

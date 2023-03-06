@@ -18,6 +18,11 @@ def get_duckdb_data_query_chain(llm, database):
             func=lambda table: describe_table_or_view(database, table),
             description="Useful to show the column names and types of a table or view. Use a valid table name as the input."
         ),
+        Tool(
+            name="Query Inspector",
+            func=lambda input: input,
+            description="Useful to show the query before execution. Always inspect your query before execution."
+        ),
         DuckDBTool(engine=database),
     ]
 
@@ -30,7 +35,7 @@ def get_duckdb_data_query_chain(llm, database):
         tools,
         prefix=prefix,
         #suffix=suffix,
-        input_variables=["input", "agent_scratchpad"]
+        input_variables=["input", "agent_scratchpad", 'table_names'],
     )
 
     llm_chain = LLMChain(llm=llm, prompt=prompt)
@@ -48,44 +53,46 @@ def get_duckdb_data_query_chain(llm, database):
 
 
 prefix = """Given an input question, identify the relevant tables and relevant columns, then create
-one single syntactically correct DuckDB query to run before returning the answer. If the input is
-a valid looking SQL query selecting data or creating a view, execute it directly. 
+one single syntactically correct DuckDB query to inspect, then execute, before returning the answer. 
+If the input is a valid looking SQL query selecting data or creating a view, execute it directly. 
 
-Before answering, you MUST show the tables to make sure you specify the correct table.
-Before answering, you MUST query the database for any data. Check the available columns and tables 
-exist first. Refuse to delete any data, or drop tables.
+Before answering, you MUST query the database for any data. Inspect your query before execution.
+
+Refuse to delete any data, or drop tables.
  
 Unless the user specifies in their question a specific number of examples to obtain, you always limit
 your query to at most 5 results. You can order the results by a relevant column to return the most interesting 
 examples in the database.
 
-Never query for all the columns from a specific table, only ask for the relevant columns given the question.
-
 Pay attention to use only the column names that you can see in the schema description. Be careful 
 to not query for columns that do not exist. Also, pay attention to which column is in which table.
 
-You always provide the SQL queries you ran as part of your final answer. An example final 
+You always summarize the relevant SQL queries you ran as part of your final answer. An example final 
 answer:
 ```
 Final Answer: There were 109 male passengers who survived.
 The following SQL queries were executed to obtain the result:
 - SELECT Sex, Survived FROM titanic limit 5;
-- CREATE VIEW male_survivors AS SELECT * FROM titanic WHERE Sex = 'male' AND Survived = 1;`
-- select count(*) from male_survivors
+- CREATE VIEW male_survivors AS SELECT * FROM titanic WHERE Sex = 'male' AND Survived = 1;
+- select count(*) from male_survivors;
 ```
 
-In the case of a query that returns no results, you should output a summary as your final answer:
+In the case of a query that fails or returns no results, you should output a summary as your final answer:
 ```
 Final Answer: The data has been written to a parquet file at 'data/titanic_gender_survival.parquet'
- The following SQL queries were executed to obtain the result:
+The following SQL queries were executed to obtain the result:
 - COPY (select * from titanic) TO 'data/titanic_gender_survival.parquet' (FORMAT PARQUET);
 ```
 
+
+It is important that you use the exact phrase "Final Answer:" in your final answer.
+
 Queries should be output across multiple lines for readability and don't use any escape characters. 
+You have access to the following tables/views:
+{table_names}
 
 You have access to the following tools:
 """
-
 
 
 

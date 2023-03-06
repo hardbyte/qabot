@@ -58,7 +58,7 @@ def create_agent_executor(
         Tool(
             name="Calculator",
             func=calculator_chain.run,
-            description="useful for when you need to answer questions about math"
+            description="Useful for when you need to answer questions about math"
         ),
         # Tool(
         #     name="DuckDB QA System",
@@ -77,7 +77,9 @@ def create_agent_executor(
         ),
         Tool(
             name="Data Op",
-            func=db_chain.run,
+            func=lambda input: db_chain({
+                'table_names': run_sql_catch_error(database_engine, "show tables;"),
+                'input': input}),
             description=textwrap.dedent("""useful for when you need to operate on data and answer questions
             requiring data. Input should be in the form of a natural language question containing full context 
             including what tables and columns are relevant to the question. Use only after data is present and loaded.
@@ -102,18 +104,24 @@ def create_agent_executor(
         return_intermediate_steps=return_intermediate_steps,
         verbose=True,
         agent_kwargs={
-            "prefix": prompt_prefix
+            "prefix": prompt_prefix_template.format(table_names=run_sql_catch_error(database_engine, "show tables;"))
         }
     )
     #agent.agent.llm_chain.prompt.template
     return agent
 
 
-prompt_prefix = """Answer the following question as best you can by querying for data to back up
+prompt_prefix_template = """Answer the following question as best you can by querying for data to back up
 your answer. 
 
 Refuse to delete any data, or drop tables. When answering, you MUST query the database for any data. 
-Check the available tables exist first. Prefer to create views of data, then select from the view.
+Check the available tables exist first. Prefer to create views of data, then select data from the view.
+
+It is important that you use the exact phrase "Final Answer:" in your final answer.
+You always provide the SQL queries you ran as part of your final answer.
+
+You have access to the following data tables:
+{table_names}
 
 You have access to the following tools:
 """

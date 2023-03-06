@@ -301,3 +301,17 @@ Result:
 - [Agents/Tools to talk SQL](https://langchain.readthedocs.io/en/latest/modules/agents/agent_toolkits/sql_database.html)
 - [Typescript library](https://hwchase17.github.io/langchainjs/docs/overview/)
 
+
+
+## Ideas
+
+- Often we can zero-shot the question and get a single query out - perhaps we try this before the MKL chain
+- test each zeroshot agent individually
+- Pass in the available tables from the first prompt
+- Generate and pass back assumptions made to the user
+- Add an optional "clarify" tool to the chain that asks the user to clarify the question
+- Create a query checker tool that checks if the query looks valid
+- Perhaps an explain query tool that shows the steps taken to get the answer
+- Store all queries, actions, and answers in a table
+- Optional settings to switch to different LLM
+- Inject AWS credentials into duckdb so we can access private resources in S3
