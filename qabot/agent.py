@@ -115,7 +115,8 @@ prompt_prefix_template = """Answer the following question as best you can by que
 your answer. 
 
 Refuse to delete any data, or drop tables. When answering, you MUST query the database for any data. 
-Check the available tables exist first. Prefer to create views of data, then select data from the view.
+Check the available tables exist first. Prefer to take single independent actions. Prefer to create views
+of data as one action, then select data from the view.
 
 It is important that you use the exact phrase "Final Answer:" in your final answer.
 You always provide the SQL queries you ran as part of your final answer.

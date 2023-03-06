@@ -3,7 +3,6 @@ import time
 from typing import List, Optional
 import warnings
 
-import langchain
 import typer
 from langchain.callbacks import OpenAICallbackHandler
 from langchain.callbacks.base import CallbackManager
@@ -15,16 +14,23 @@ from rich.traceback import install
 
 from qabot.caching import configure_caching
 from qabot.config import Settings
-from qabot.duckdb_manual_data_loader import create_duckdb_from_files
+from qabot.duckdb_manual_data_loader import import_into_duckdb_from_files, create_duckdb
 from qabot.agent import create_agent_executor
 
-install(suppress=[typer, langchain], max_frames=5, show_locals=False)
+#install(suppress=[typer, langchain], max_frames=1, show_locals=False)
+
 warnings.filterwarnings("ignore")
 
 INITIAL_NON_INTERACTIVE_PROMPT = "🚀 How can I help you explore your database?"
 INITIAL_INTERACTIVE_PROMPT = "[bold green] 🚀 How can I help you explore your database?"
 FOLLOW_UP_PROMPT = "[bold green] 🚀 any further questions?"
 PROMPT = "[bold green] 🚀 Query"
+
+app = typer.Typer(
+    pretty_exceptions_show_locals=False,
+    pretty_exceptions_enable=True
+)
+
 
 def format_intermediate_steps(intermediate_steps):
     if isinstance(intermediate_steps, list):
@@ -91,6 +97,8 @@ class QACallback(OpenAICallbackHandler):
     def on_tool_end(self, output: str, **kwargs):
         print("[yellow]On tool end")
 
+
+@app.command()
 def main(
         query: str = typer.Option("Describe the tables", '-q', '--query', prompt=INITIAL_NON_INTERACTIVE_PROMPT),
         file: Optional[List[str]] = typer.Option(None, "-f", "--file", help="File or url containing data to query"),
@@ -98,7 +106,6 @@ def main(
         table: Optional[List[str]] = typer.Option(None, "--table", "-t", help="Limit queries to these tables (can be specified multiple times)"),
         disable_cache: bool = typer.Option(False, "--disable-cache", help="Disable caching of LLM queries"),
         verbose: bool = typer.Option(False, "-v", "--verbose"),
-
 ):
     """
     Query a database using a simple english query.
@@ -110,12 +117,13 @@ def main(
     settings = Settings()
     executed_sql = ''
     # If files are given load data into local DuckDB
-    database_engine = None
+    database_engine = create_duckdb()
+
     if len(file) > 0:
         if isinstance(file, str):
             file = [file]
         print("[red]🦆[/red] [bold]Loading data from files...[/bold]")
-        database_engine, executed_sql = create_duckdb_from_files(file)
+        database_engine, executed_sql = import_into_duckdb_from_files(database_engine, file)
         executed_sql = '\n'.join(executed_sql)
     else:
         print("[red]🦆[/red]")
@@ -195,7 +203,8 @@ def main(
 
 
 def run():
-    typer.run(main)
+
+    app()
 
 
 if __name__ == '__main__':

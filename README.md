@@ -305,6 +305,7 @@ Result:
 
 ## Ideas
 
+- Python Library API so can be used from other python code
 - Often we can zero-shot the question and get a single query out - perhaps we try this before the MKL chain
 - test each zeroshot agent individually
 - Pass in the available tables from the first prompt

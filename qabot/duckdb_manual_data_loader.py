@@ -13,11 +13,21 @@ def uri_validator(x):
         return False
 
 
-def create_duckdb_from_files(files: list[str]) -> Tuple[duckdb.DuckDBPyConnection, list[str]]:
+def create_duckdb(duckdb_path: str = ':memory:') -> duckdb.DuckDBPyConnection:
     # By default, duckdb is fully in-memory - we can provide a path to get
     # persistent storage
 
-    duckdb_connection = duckdb.connect(":memory:")
+    duckdb_connection = duckdb.connect(duckdb_path)
+    duckdb_connection.sql("INSTALL httpfs;")
+    duckdb_connection.sql("LOAD httpfs;")
+
+    duckdb_connection.sql("create temporary table if not exists _qabot_queries(query VARCHAR PRIMARY KEY, result VARCHAR)")
+
+    return duckdb_connection
+
+
+def import_into_duckdb_from_files(duckdb_connection: duckdb.DuckDBPyConnection, files: list[str]) -> Tuple[duckdb.DuckDBPyConnection, list[str]]:
+
     executed_sql = []
     for i, file_path in enumerate(files, 1):
 
@@ -45,6 +55,8 @@ def load_external_data_into_db(conn: duckdb.DuckDBPyConnection, file_path, allow
     table_name, extension = os.path.splitext(os.path.basename(file_path))
     # If the table_name isn't a valid SQL identifier, we'll need to use something else
 
+    table_name = table_name.replace("-", "_").replace(".", "_").replace(" ", "_").replace('/', '_')
+
     try:
         conn.sql(f"create table t_{table_name} as select 1;")
         conn.sql(f"drop table t_{table_name};")
@@ -53,9 +65,6 @@ def load_external_data_into_db(conn: duckdb.DuckDBPyConnection, file_path, allow
 
     # The SQLAgent doesn't appear to see view's just yet, so we'll create a table instead
     use_view = allow_view and is_url
-    if is_url:
-        conn.sql("INSTALL httpfs;")
-        conn.sql("LOAD httpfs;")
 
     create_statement = f"create {'view' if use_view else 'table'} '{table_name}' as select * from '{file_path}';"
 
