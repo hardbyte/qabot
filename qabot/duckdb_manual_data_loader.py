@@ -18,8 +18,11 @@ def create_duckdb(duckdb_path: str = ':memory:') -> duckdb.DuckDBPyConnection:
     # persistent storage
 
     duckdb_connection = duckdb.connect(duckdb_path)
-    duckdb_connection.sql("INSTALL httpfs;")
-    duckdb_connection.sql("LOAD httpfs;")
+    try:
+        duckdb_connection.sql("INSTALL httpfs;")
+        duckdb_connection.sql("LOAD httpfs;")
+    except Exception:
+        print("Failed to install httpfs extension. Only loading from local files will be supported")
 
     duckdb_connection.sql("create temporary table if not exists _qabot_queries(query VARCHAR PRIMARY KEY, result VARCHAR)")
 

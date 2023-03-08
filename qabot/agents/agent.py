@@ -4,7 +4,6 @@ from langchain import LLMMathChain
 from langchain.agents import Tool, create_sql_agent, initialize_agent
 from langchain.llms import OpenAIChat
 
-from qabot.data_loader_chain import get_duckdb_data_loader_chain
 from qabot.agents.data_query_chain import get_duckdb_data_query_chain
 from qabot.duckdb_query import run_sql_catch_error
 from qabot.tools.describe_duckdb_table import describe_table_or_view
