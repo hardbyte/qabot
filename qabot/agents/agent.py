@@ -33,7 +33,6 @@ def create_agent_executor(
         callback_manager=callback_manager,
         verbose=verbose
     )
-    data_loader_chain = get_duckdb_data_loader_chain(llm=llm, database=database_engine)
 
     tools = [
         Tool(
@@ -65,18 +64,7 @@ def create_agent_executor(
             requiring data. Input should be in the form of a natural language question containing full context
             including what tables and columns are relevant to the question. Use only after data is present and loaded.
             """,)
-        ),
-        Tool(
-            name="Data Loader",
-            func=lambda input: data_loader_chain({
-                'table_names': lambda _: run_sql_catch_error(database_engine, "show tables;"),
-                'input': input
-            }),
-            description="""useful for when you need to load data from a specific local or remote file.
-            Files can be a csv, json, sqlite, or parquet. Input should be in the form of a natural language
-             question containing full context including the table or view should be called. 
-            """
-        ),
+        )
     ]
 
     agent = initialize_agent(
