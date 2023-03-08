@@ -1,85 +1,88 @@
-from langchain import LLMChain, PromptTemplate
-from langchain.agents import AgentExecutor, ZeroShotAgent
+import os
 
-from qabot.duckdb_execute_tool import DuckDBTool
+from langchain import LLMChain, PromptTemplate
+from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
+
+from qabot.tools.describe_duckdb_table import describe_table_or_view
+from qabot.tools.duckdb_execute_tool import DuckDBTool
 
 
 def get_duckdb_data_loader_chain(llm, database):
-    tool = DuckDBTool(engine=database)
+    tools = [
+        DuckDBTool(engine=database),
+        Tool(
+            name="Query Inspector",
+            func=lambda query: query.strip('"').strip("'"),
+            description="Useful to show the query before execution. Always inspect your query before execution. Input MUST be on one line."
+        ),
+        Tool(
+            name="Local File Inspector",
+            func=lambda query: f"File '{query}' is present." if os.path.exists(query.strip()) else f"File '{query}' does not exist",
+            description="Useful to check a file exists. Always use AFTER writing to a local file. Input is the file path."
+        ),
+        Tool(
+            name="Describe Table",
+            func=lambda table: describe_table_or_view(database, table),
+            description="Useful to show the column names and types of a table or view. Use a valid table name as the input."
+        ),
+    ]
 
-    prompt = PromptTemplate(
-        input_variables=["input", "agent_scratchpad"],
-        template=_DEFAULT_TEMPLATE,
+    prompt = ZeroShotAgent.create_prompt(
+        tools=tools,
+        prefix=prefix,
+        suffix=suffix,
+        input_variables=["input", "agent_scratchpad", 'table_names'],
+
     )
 
     llm_chain = LLMChain(llm=llm, prompt=prompt)
-    tool_names = [tool.name]
+    tool_names = [tool.name for tool in tools]
     agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
+
     agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
-        tools=[tool],
+        tools=tools,
         verbose=True
     )
 
     return agent_executor
 
 
-_DEFAULT_TEMPLATE = """Given a description of data containing a url or local path, identify the 
-extension (.json, .parquet, .csv), generate an appropriate table name, generate the SQL to load the
-data into a DuckDB database.
+suffix = """After outputting the Action Input you never output an Observation, that will be provided to you.
 
-CREATE TABLE test AS SELECT * FROM 'input-file';
+List the relevant SQL queries you ran in your final answer. 
 
-Use the following format:
+If a query fails, try to fix it  except for where the file doesn't exist.
 
-Input: "Description of input data here"
-Extension: Extension of the input data
-Action: the action to take, should be one of [execute]
-Action Input: "SQL Query to load data"
-Final Answer: Name of table or view that was created. Along with the SQL query that was executed.
+Output a summary of your actions in your final answer. It is important that you use the exact format:
 
-For example:
+Final Answer: I have successfully created a view called 'x' from 'filename'.
 
-``` 
-Input: "open test.parquet from the data folder"
-Extension: parquet
-Action: execute
-Action Input: "CREATE TABLE test AS SELECT * FROM 'data/test.parquet';"
-Final Answer: test
+Queries should be output on one line and don't use any escape characters. 
 
-The following SQL queries were executed:
-CREATE TABLE test AS SELECT * FROM 'data/test.parquet';
-```
+Let's go! Remember it is important that you use the exact phrase "Final Answer: " to begin your
+final answer.
 
-Another example:
+Question: {input}
+Thought: {agent_scratchpad}"""
+
+prefix = """Given a description of data containing a url or local path, identify the 
+extension (.json, .parquet, .csv), if not provided generate an appropriate table name that 
+doesn't already exist in the database, then generate and exucute the SQL to load the data
+into the DuckDB database. 
+
+Example imports:
+- CREATE TABLE test AS SELECT * FROM 'input-file';
+- CREATE table customers AS SELECT * FROM 'data/records.json';
+- CREATE VIEW covid AS SELECT * FROM 's3://covid19-lake/data.csv';
+
+Your output should include the name of table or view that was created. Along with any SQL queries
+that were executed.
  
-```
-Input: "import data/records.json as customers"
-Extension: json
-Action: execute
-Action Input: "CREATE table customers AS SELECT * FROM 'data/records.json';"
-Final Answer: customers
-
-The following SQL queries were executed:
-CREATE table customers AS SELECT * FROM 'data/records.json';
-```
-
-
-Another Example:
-
-Input: "create a view of the covid data from "s3://covid19-lake/data.csv"
-Extension: csv
-Action: execute
-Action Input: "CREATE VIEW covid AS SELECT * FROM 's3://covid19-lake/data.csv';"
-Final Answer: covid
-
-
 In the case of a query that returns no results, you should output a summary as your final answer:
-```
-Final Answer: The data has been written to a parquet file at 'data/titanic_gender_survival.parquet'
-The following SQL queries were executed:
-- COPY (select * from titanic) TO 'data/titanic_gender_survival.parquet' (FORMAT PARQUET);
-```
 
-Input: {input}
-{agent_scratchpad}"""
+You have access to the following tables/views:
+{table_names}
+
+You have access to the following tools:
+"""

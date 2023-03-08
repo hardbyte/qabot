@@ -1,12 +1,7 @@
-from langchain import LLMChain, PromptTemplate
-from langchain.agents import AgentExecutor, ZeroShotAgent
-
-from qabot.duckdb_execute_tool import DuckDBTool
-
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.text_splitter import CharacterTextSplitter
-from langchain import OpenAI, VectorDBQA
+from langchain import VectorDBQA
 from langchain.document_loaders import WebBaseLoader
 
 """

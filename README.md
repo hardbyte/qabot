@@ -3,6 +3,17 @@
 Query local or remote files with natural language queries powered by
 `langchain` and `gpt-3.5-turbo` and `duckdb` 🦆.
 
+
+```
+qabot -q "Load the file 'data/titanic_survival.parquet' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?"
+```
+
+Output:
+
+> The average fare for surviving male passengers from the 'male_passengers' view where the passenger survived is 40.82. I ran the query: SELECT AVG(Fare) FROM male_passengers WHERE Survived = 1 AND Sex = 'male';
+The average fare for surviving male passengers is 40.82.
+
+
 Works on local CSV files:
 
 ![](.github/local_csv_query.png)
@@ -19,6 +30,8 @@ $ qabot \
 Even on (public) data stored in S3:
 
 ![](.github/external_s3_data.png)
+
+Load data from disk, S3, or a database, and query it with natural language queries.
 
 
 ## Quickstart
@@ -319,3 +332,4 @@ Result:
 - Store all queries, actions, and answers in a table
 - Optional settings to switch to different LLM
 - Inject AWS credentials into duckdb so we can access private resources in S3
+- A version that uses document embeddings - probably not in this app as needs Torch

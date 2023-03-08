@@ -1,23 +1,21 @@
 import textwrap
-import time
 from typing import List, Optional
 import warnings
 
 import typer
-from langchain.callbacks import OpenAICallbackHandler
 from langchain.callbacks.base import CallbackManager
 from langchain.schema import AgentAction
 from rich import print
+
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
-from rich.traceback import install
 
 from qabot.caching import configure_caching
 from qabot.config import Settings
 from qabot.duckdb_manual_data_loader import import_into_duckdb_from_files, create_duckdb
-from qabot.agent import create_agent_executor
-
-#install(suppress=[typer, langchain], max_frames=1, show_locals=False)
+from qabot.agents.agent import create_agent_executor
+from qabot.duckdb_query import run_sql_catch_error
+from qabot.progress_callback import QACallback
 
 warnings.filterwarnings("ignore")
 
@@ -40,62 +38,37 @@ def format_intermediate_steps(intermediate_steps):
 
 
 def format_agent_action(agent_action: AgentAction, observation) -> str:
+    """
+    Sometimes observation is a string, sometimes it is a dict. This function handles both cases.
+
+
+    """
     result = ''
+    internal_result = str(observation).strip()
+    logs = ''
+
     if isinstance(observation, dict):
-        if 'result' in observation:
-            result = observation['result']
-        elif 'output' in observation:
-            result = observation['output']
-        if 'intermediate_steps' in observation:
-            observation = format_intermediate_steps(observation['intermediate_steps'])
+        if 'input' in observation:
+            # should be the same as agent_action.tool_input
+            pass
+        if 'output' in observation:
+            internal_result = observation['output']
+        #if 'intermediate_steps' in observation:
+        #     observation = format_intermediate_steps(observation['intermediate_steps'])
+
+    if len(agent_action) > 3:
+        logs = '\n'.join([textwrap.indent(str(o).strip(), ' '*6) for o in agent_action])
 
     return f"""
 [red]{agent_action.tool.strip()}[/red]
   [green]{agent_action.tool_input.strip()}[/green]
 
-  [blue]{str(observation).strip()}[/blue]
+  [blue]{internal_result}[/blue]
+  
+    [cyan]{str(logs).strip()}[/cyan]
 
 [bold red]{result}[/bold red]
 """
-
-
-class QACallback(OpenAICallbackHandler):
-    def __init__(self, *args, **kwargs):
-        self.progress: Progress = kwargs.pop('progress')
-        self.chain_task_ids = []
-        self.tool_task_id = None
-
-        super().__init__(*args, **kwargs)
-
-    def on_chain_start(self, serialized, inputs, **kwargs):
-        self.chain_task_ids.append(self.progress.add_task(f"on chain start"))
-        if isinstance(serialized, dict) and 'name' in serialized:
-            self.progress.update(self.chain_task_ids[-1], description=f"[yellow]{serialized['name']}")
-        elif 'agent_scratchpad' in inputs and len(inputs['agent_scratchpad']):
-            self.progress.update(self.chain_task_ids[-1], description=inputs['agent_scratchpad'])
-
-    def on_agent_action(
-        self, action: AgentAction, color: Optional[str] = None, **kwargs
-    ):
-        """Run on agent action."""
-        print(action.log)
-
-    def on_chain_end(self, outputs, **kwargs):
-        super().on_chain_end(outputs, **kwargs)
-        if isinstance(outputs, dict) and 'output' in outputs:
-            outputs = outputs['output']
-
-        self.progress.update(self.chain_task_ids[-1], description=f"[yellow]{outputs}")
-        self.progress.remove_task(self.chain_task_ids.pop())
-
-    def on_llm_end(self, response, **kwargs):
-        print("[yellow]On llm end")
-
-    def on_tool_start(self, **kwargs):
-        print("[yellow]On tool start")
-
-    def on_tool_end(self, output: str, **kwargs):
-        print("[yellow]On tool end")
 
 
 @app.command()
@@ -105,7 +78,7 @@ def main(
         #database_uri: Optional[str] = typer.Option(None, "-d", "--database", help="Database URI (e.g. sqlite:///mydb.db)"),
         table: Optional[List[str]] = typer.Option(None, "--table", "-t", help="Limit queries to these tables (can be specified multiple times)"),
         disable_cache: bool = typer.Option(False, "--disable-cache", help="Disable caching of LLM queries"),
-        verbose: bool = typer.Option(False, "-v", "--verbose"),
+        verbose: bool = typer.Option(False, "-v", "--verbose", help='Essentially debug output'),
 ):
     """
     Query a database using a simple english query.
@@ -151,6 +124,7 @@ def main(
             callback_manager=callback_manager,
             verbose=False,
         )
+
         progress.remove_task(t2)
         chat_history = [f"""
         Startup SQL Queries:
@@ -166,6 +140,7 @@ def main(
 
             inputs = {
                 "input": chat_history[0] + query,
+                "table_names": run_sql_catch_error(database_engine, "show tables")
                 #'chat_history': '\n\n'.join(chat_history)
             }
 
@@ -201,9 +176,7 @@ def main(
             progress.start()
 
 
-
 def run():
-
     app()
 
 

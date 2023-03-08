@@ -1,12 +1,12 @@
-from langchain import LLMChain, PromptTemplate
+from langchain import LLMChain
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
 
-from qabot.duckdb_execute_tool import DuckDBTool
+from qabot.tools.duckdb_execute_tool import DuckDBTool
 from qabot.duckdb_query import run_sql_catch_error
 from qabot.tools.describe_duckdb_table import describe_table_or_view
 
 
-def get_duckdb_data_query_chain(llm, database):
+def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=False):
     tools = [
         Tool(
             name="Show Tables",
@@ -20,8 +20,8 @@ def get_duckdb_data_query_chain(llm, database):
         ),
         Tool(
             name="Query Inspector",
-            func=lambda input: input,
-            description="Useful to show the query before execution. Always inspect your query before execution."
+            func=lambda query: query.strip('"').strip("'"),
+            description="Useful to show the query before execution. Always inspect your query before execution. Input MUST be on one line."
         ),
         DuckDBTool(engine=database),
     ]
@@ -34,7 +34,7 @@ def get_duckdb_data_query_chain(llm, database):
     prompt = ZeroShotAgent.create_prompt(
         tools,
         prefix=prefix,
-        #suffix=suffix,
+        suffix=suffix,
         input_variables=["input", "agent_scratchpad", 'table_names'],
     )
 
@@ -42,38 +42,52 @@ def get_duckdb_data_query_chain(llm, database):
 
     tool_names = [tool.name for tool in tools]
 
-    agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
+    agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names,)
     agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
         tools=tools,
-        verbose=True
+        callback_manager=callback_manager,
+        verbose=verbose,
     )
 
     return agent_executor
+
+
+suffix = """After outputting the Action Input you never output an Observation, that will be provided to you.
+
+List the relevant SQL queries you ran in your final answer.
+
+If a query fails, try fix it, if the database doesn't contain the answer, or returns no results,
+output a summary of your actions in your final answer. It is important that you use the exact format:
+
+Final Answer: I have successfully created a view of the data.
+
+Queries should be output on one line and don't use any escape characters. 
+
+Let's go! Remember it is important that you use the exact phrase "Final Answer: " to begin your
+final answer.
+
+Question: {input}
+Thought: I should describe the most relevant tables in the database to see what columns will be useful.
+{agent_scratchpad}"""
 
 
 prefix = """Given an input question, identify the relevant tables and relevant columns, then create
 one single syntactically correct DuckDB query to inspect, then execute, before returning the answer. 
 If the input is a valid looking SQL query selecting data or creating a view, execute it directly. 
 
-Before answering, you MUST query the database for any data. Inspect your query before execution.
+Even if you know the answer, you MUST show you can get the answer from the database.
+Inspect your query before execution.
 
 Refuse to delete any data, or drop tables. You only execute one statement at a time.
  
-Unless the user specifies in their question a specific number of examples to obtain, you always limit
-your query to at most 5 results. You can order the results by a relevant column to return the most interesting 
+Unless the user specifies in their question a specific number of examples to obtain, limit your
+query to at most 5 results. You can order the results by a relevant column to return the most interesting 
 examples in the database.
 
-Pay attention to use only the column names that you can see in the schema description. Be careful 
-to not query for columns that do not exist. Also, pay attention to which column is in which table.
+Pay attention to use only the column names that you can see in the schema description. Pay attention
+to which column is in which table.
 
-After outputting an Action Input you never guess what the Observation will be.
-
-You always summarize the relevant SQL queries you ran as part of your final answer. 
-In the case of a query that fails or returns no results, you should output a summary as your final answer.
-It is important that you use the exact phrase "Final Answer:" in your final answer.
-
-Queries should be output across multiple lines for readability and don't use any escape characters. 
 You have access to the following tables/views:
 {table_names}
 
@@ -107,7 +121,7 @@ Action Input: "CREATE TABLE names (id INTEGER, name VARCHAR, email VARCHAR);"
 Thought: "I should describe the table to make sure it was created correctly"
 Action: Describe Table
 Action Input: names
-Final Answer: 
+Final Answer: <Summary>
 
 
 Errors should be returned directly:

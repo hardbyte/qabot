@@ -16,7 +16,15 @@ def run_sql_catch_error(conn, sql: str):
             rendered_output = "No output"
         else:
             try:
-                rendered_data = '\n'.join(str(row) for row in output.fetchall())
+                results_as_python_objects = output.fetchall()
+                rendered_rows = []
+                for row in results_as_python_objects:
+                    if len(row) == 1:
+                        rendered_rows.append(str(row[0]))
+                    else:
+                        rendered_rows.append(','.join(str(x) for x in row))
+
+                rendered_data = '\n'.join(rendered_rows)
                 rendered_output = ','.join(output.columns) + '\n' + rendered_data
             except AttributeError:
                 rendered_output = str(output)

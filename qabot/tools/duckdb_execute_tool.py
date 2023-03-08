@@ -1,6 +1,6 @@
 import time
 from typing import Any
-
+from rich import print
 from langchain.tools import BaseTool
 from sqlalchemy import text
 
@@ -22,10 +22,11 @@ class DuckDBTool(BaseTool):
         self.database = engine
 
     def _run(self, query: str) -> str:
-
-        #time.sleep(2)
-        #print(query)
-        return run_sql_catch_error(self.database, query)
+        #
+        query_result = run_sql_catch_error(self.database, query)
+        print(f"[pink]{query_result}[/pink]")
+        time.sleep(1)
+        return query_result
 
 
     async def _arun(self, query: str) -> str:

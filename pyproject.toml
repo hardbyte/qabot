@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qabot"
-version = "0.2.2"
+version = "0.2.3"
 description = ""
 authors = ["Brian Thorne <brian@hardbyte.nz>"]
 readme = "README.md"
