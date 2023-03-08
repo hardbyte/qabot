@@ -305,7 +305,10 @@ Result:
 
 ## Ideas
 
-- Python Library API so can be used from other python code
+- Upgrade to use langchain chat interface
+- Use memory, perhaps wait for langchain's next release
+- Decent Python Library API so can be used from other Python code
+- Supervisor agent - assess whether a query is "safe" to run, could ask for user confirmation to run anything that gets flagged.
 - Often we can zero-shot the question and get a single query out - perhaps we try this before the MKL chain
 - test each zeroshot agent individually
 - Pass in the available tables from the first prompt
