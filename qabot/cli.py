@@ -164,7 +164,7 @@ def main(
                     print(textwrap.indent(format_agent_action(agent_action, action_input), "    "))
 
                 print()
-            print("Total tokens", output_callback.total_tokens)
+            print("Total tokens", output_callback.total_tokens, f"approximate cost ${output_callback.total_tokens * 0.002/1000}")
 
             # Stop the progress before outputting result and prompting for input
             progress.stop()
