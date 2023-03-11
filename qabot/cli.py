@@ -76,7 +76,7 @@ def format_agent_action(agent_action: AgentAction, observation) -> str:
 def main(
         query: str = typer.Option("Describe the tables", '-q', '--query', prompt=INITIAL_NON_INTERACTIVE_PROMPT),
         file: Optional[List[str]] = typer.Option(None, "-f", "--file", help="File or url containing data to query"),
-        #database_uri: Optional[str] = typer.Option(None, "-d", "--database", help="Database URI (e.g. sqlite:///mydb.db)"),
+        database_uri: Optional[str] = typer.Option(":memory:", "-d", "--database", help="DuckDB Database URI (e.g. '/tmp/qabot.duckdb')"),
         table: Optional[List[str]] = typer.Option(None, "--table", "-t", help="Limit queries to these tables (can be specified multiple times)"),
         disable_cache: bool = typer.Option(False, "--disable-cache", help="Disable caching of LLM queries"),
         verbose: bool = typer.Option(False, "-v", "--verbose", help='Essentially debug output'),
@@ -91,7 +91,7 @@ def main(
     settings = Settings()
     executed_sql = ''
     # If files are given load data into local DuckDB
-    database_engine = create_duckdb()
+    database_engine = create_duckdb(database_uri)
 
     if len(file) > 0:
         if isinstance(file, str):

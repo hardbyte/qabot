@@ -322,16 +322,16 @@ Result:
 - Use memory, perhaps wait for langchain's next release
 - Decent Python Library API so can be used from other Python code
 - streaming mode to output results as they come in
-- token usage reporting and limits
+- token limits
 - Supervisor agent - assess whether a query is "safe" to run, could ask for user confirmation to run anything that gets flagged.
 - Often we can zero-shot the question and get a single query out - perhaps we try this before the MKL chain
 - test each zeroshot agent individually
-- Pass in the available tables from the first prompt
 - Generate and pass back assumptions made to the user
 - Add an optional "clarify" tool to the chain that asks the user to clarify the question
-- Create a query checker tool that checks if the query looks valid
+- Create a query checker tool that checks if the query looks valid and/or safe
 - Perhaps an explain query tool that shows the steps taken to get the answer
 - Store all queries, actions, and answers in a table
 - Optional settings to switch to different LLM
 - Inject AWS credentials into duckdb so we can access private resources in S3
+- caching
 - A version that uses document embeddings - probably not in this app as needs Torch

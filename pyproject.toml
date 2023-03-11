@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qabot"
-version = "0.2.7"
+version = "0.2.8"
 description = "Query local or remote data files with natural language queries powered by OpenAI and DuckDB."
 authors = ["Brian Thorne <brian@hardbyte.nz>"]
 readme = "README.md"
