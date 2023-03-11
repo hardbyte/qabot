@@ -12,6 +12,9 @@ def run_sql_catch_error(conn, sql: str):
 
         output = conn.sql(sql)
 
+        # Store the query in the database
+        conn.execute("INSERT INTO _qabot_queries (query) VALUES (?)", [sql])
+
         if output is None:
             rendered_output = "No output"
         else:

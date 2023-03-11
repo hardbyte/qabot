@@ -2,7 +2,6 @@ import time
 from typing import Any
 from rich import print
 from langchain.tools import BaseTool
-from sqlalchemy import text
 
 from qabot.duckdb_query import run_sql_catch_error
 
@@ -25,7 +24,7 @@ class DuckDBTool(BaseTool):
         #
         query_result = run_sql_catch_error(self.database, query)
         print(f"[pink]{query_result}[/pink]")
-        time.sleep(1)
+        time.sleep(0.2)
         return query_result
 
 

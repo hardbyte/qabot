@@ -3,9 +3,10 @@ from typing import List, Optional
 import warnings
 
 import typer
-from langchain.callbacks.base import CallbackManager
+from langchain.callbacks.openai_info import OpenAICallbackHandler
 from langchain.schema import AgentAction
 from rich import print
+from langchain.callbacks import get_callback_manager
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
@@ -107,7 +108,14 @@ def main(
         transient=False,
     ) as progress:
 
-        callback_manager = CallbackManager(handlers=[QACallback(progress=progress)])
+        output_callback = QACallback(progress=progress)
+        openai_callback = OpenAICallbackHandler()
+        callback_manager = get_callback_manager()
+
+        callback_manager.add_handler(openai_callback)
+        callback_manager.add_handler(output_callback)
+
+
 
         if not disable_cache:
             t = progress.add_task(description="Setting up cache...", total=None)
@@ -156,6 +164,7 @@ def main(
                     print(textwrap.indent(format_agent_action(agent_action, action_input), "    "))
 
                 print()
+            print("Total tokens", output_callback.total_tokens)
 
             # Stop the progress before outputting result and prompting for input
             progress.stop()

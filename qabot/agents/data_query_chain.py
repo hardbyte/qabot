@@ -86,8 +86,7 @@ Example imports:
 - CREATE VIEW covid AS SELECT * FROM 's3://covid19-lake/data.csv';
 
 Unless the user specifies in their question a specific number of examples to obtain, limit your
-query to at most 5 results. You can order the results by a relevant column to return the most interesting 
-examples in the database.
+select query to returning 5 results.
 
 Pay attention to use only the column names that you can see in the schema description. Pay attention
 to which column is in which table.

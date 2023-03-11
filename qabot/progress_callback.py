@@ -24,12 +24,12 @@ class QACallback(OpenAICallbackHandler):
             self.progress.update(self.chain_task_ids[-1], description=inputs['agent_scratchpad'])
 
     def on_tool_start(self, serialized: Dict[str, Any], input_str: str, **kwargs):
-        self.tool_task_id = self.progress.add_task(f"on tool start")
-        self.progress.update(self.tool_task_id, description=f"[yellow]{serialized['name']}")
+        self.tool_task_id = self.progress.add_task(description=f"[yellow]Using tool: {serialized['name']}")
 
-    def on_tool_end(self, output: str, color, observation_prefix, **kwargs):
-        self.progress.remove_task(self.tool_task_id)
-        self.tool_task_id = None
+    def on_tool_end(self, output: str, color, observation_prefix, llm_prefix, **kwargs):
+        if self.tool_task_id is not None:
+            self.progress.remove_task(self.tool_task_id)
+            self.tool_task_id = None
 
     def on_agent_action(
         self, action: AgentAction, color: Optional[str] = None, **kwargs
@@ -43,7 +43,7 @@ class QACallback(OpenAICallbackHandler):
             outputs = outputs['text']
             #print(f"[cyan]{outputs}")
 
-        self.progress.update(self.chain_task_ids[-1], description=f"[yellow]{outputs}")
+        self.progress.update(self.chain_task_ids[-1], description=f"[yellow]Total tokens: {self.total_tokens} {outputs}")
         self.progress.remove_task(self.chain_task_ids.pop())
 
     def on_agent_finish(
@@ -53,6 +53,8 @@ class QACallback(OpenAICallbackHandler):
         if 'output' in finish.return_values:
             print(f"[{color}]{finish.return_values['output']}[/{color}]")
 
-
     def on_llm_end(self, response, **kwargs):
-        print("[yellow]On llm end")
+        super().on_llm_end(response, **kwargs)
+        # Could add tokens to database, or progress bar here
+
+        self.progress.update(self.chain_task_ids[-1], description=f"[yellow]Total Tokens {self.total_tokens}")
