@@ -3,6 +3,7 @@ import textwrap
 from langchain import LLMMathChain
 from langchain.agents import Tool, create_sql_agent, initialize_agent
 from langchain.llms import OpenAIChat
+from langchain.memory import ConversationBufferMemory
 
 from qabot.agents.data_query_chain import get_duckdb_data_query_chain
 from qabot.duckdb_query import run_sql_catch_error
@@ -22,7 +23,6 @@ def create_agent_executor(
         model_name="gpt-3.5-turbo",
         temperature=0.0
     )
-
 
     calculator_chain = LLMMathChain(llm=llm, verbose=False)
 
@@ -59,51 +59,49 @@ def create_agent_executor(
             func=lambda input: db_chain({
                 'table_names': lambda _: run_sql_catch_error(database_engine, "show tables;"),
                 'input': input}),
-            description=textwrap.dedent("""useful for when you need to operate on data and answer questions
+            description=textwrap.dedent("""Useful for when you need to operate on data and answer individual questions
             requiring data. Input should be in the form of a natural language question containing full context
             including what tables and columns are relevant to the question. Use only after data is present and loaded.
+            Prefer to take small independent steps with this tool.
             """,)
         )
     ]
 
+    memory = ConversationBufferMemory(memory_key="chat_history", output_key="output")
+
     agent = initialize_agent(
         tools,
         llm,
-        agent="chat-zero-shot-react-description",
+        agent="conversational-react-description",
         callback_manager=callback_manager,
         return_intermediate_steps=return_intermediate_steps,
         verbose=verbose,
         agent_kwargs={
-            "input_variables": ["input", 'agent_scratchpad', 'table_names'],
-            "prefix": prompt_prefix_template,
-            "suffix": prompt_suffix
-        }
+            #"input_variables": ["input", 'agent_scratchpad', 'chat_history'],
+            "prefix": prompt_prefix_template
+        },
+        memory=memory
     )
     return agent
 
 
-prompt_suffix = """
-Begin!
+prompt_prefix_template = """Qabot is a large language model trained to interact with DuckDB.
 
-Question: {input}
-Thought: I should look at the tables in the database to see what I can query.
-{agent_scratchpad}"""
+Qabot is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explorations on a wide range of topics relating to data.
 
-prompt_prefix_template = """Answer the following question as best you can by querying for data to back up
-your answer. Even if you know the answer, you MUST show you can get the answer from the database.
+Qabot answers questions by first querying for data to guide its answer. Qabot asks any clarifying questions it needs to.
 
-Refuse to delete any data, or drop tables. When answering, you MUST query the database for any data. 
-Prefer to use tools to take small independent actions. Prefer to create views of data as one action,
-then select data from the view.
+Qabot refuses to delete any data, or drop tables. 
 
-Include a list of all important SQL queries returned by Data Op in your final answer.
+Qabot prefers to split questions into small discrete steps, for example creating views of data as one action, then selecting data from the created view to get to the final answer.
 
-DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
+Qabot includes a list of all important SQL queries returned by Data Op in its final answers.
 
-If the question does not seem related to the database, just return "I don't know" as the answer.
+Qabot does NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
 
-You have access to the following data tables:
-{table_names}
+If the question does not seem related to the database, Qabot returns "I don't know" as the answer.
+TOOLS:
+------
 
-Only use the below tools. You have access to the following tools:
+Qabot has access to the following tools:
 """

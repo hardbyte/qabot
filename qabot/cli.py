@@ -22,8 +22,8 @@ warnings.filterwarnings("ignore")
 
 INITIAL_NON_INTERACTIVE_PROMPT = "🚀 How can I help you explore your database?"
 INITIAL_INTERACTIVE_PROMPT = "[bold green] 🚀 How can I help you explore your database?"
-FOLLOW_UP_PROMPT = "[bold green] 🚀 any further questions?"
-PROMPT = "[bold green] 🚀 Query"
+FOLLOW_UP_PROMPT = "[bold green] 🚀 anything else I can help you with?"
+DUCK_PROMPT = "[bold green] 🦆"
 
 app = typer.Typer(
     pretty_exceptions_show_locals=False,
@@ -148,8 +148,7 @@ def main(
 
             inputs = {
                 "input": chat_history[0] + query,
-                "table_names": run_sql_catch_error(database_engine, "show tables")
-                #'chat_history': '\n\n'.join(chat_history)
+                #"table_names": run_sql_catch_error(database_engine, "show tables")
             }
 
             result = agent(inputs)
@@ -173,11 +172,8 @@ def main(
             print("[bold red]Result:[/]\n[bold blue]" + result['output'] + "\n")
             chat_history.append(result['output'])
 
-            if not Confirm.ask(FOLLOW_UP_PROMPT, default=True):
-                break
-
             print()
-            query = Prompt.ask(PROMPT)
+            query = Prompt.ask(FOLLOW_UP_PROMPT)
 
             if query == "exit" and Confirm.ask("Are you sure you want to Quit?"):
                 break

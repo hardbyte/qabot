@@ -9,15 +9,15 @@ from qabot.tools.describe_duckdb_table import describe_table_or_view
 
 def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=False):
     tools = [
-        Tool(
-            name="Show Tables",
-            func=lambda _: run_sql_catch_error(database, "show tables;"),
-            description="Useful to show the available tables and views. Empty input required."
-        ),
+        # Tool(
+        #     name="Show Tables",
+        #     func=lambda _: run_sql_catch_error(database, "show tables;"),
+        #     description="Useful to show the available tables and views. Empty input required."
+        # ),
         Tool(
             name="Describe Table",
             func=lambda table: describe_table_or_view(database, table),
-            description="Useful to show the column names and types of a table or view. Use a valid table name as the input."
+            description="Useful to show the column names and types of a table or view. Also shows the first few rows. Use a valid table name as the input."
         ),
         Tool(
             name="Query Inspector",
@@ -56,16 +56,18 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
 
 suffix = """After outputting the Action Input you never output an Observation, that will be provided to you.
 
-List the relevant SQL queries you ran in your final answer.
+List the relevant SQL queries you ran in your Final Answer. If you don't want to use any tools it's 
+okay to give your message as a Final Answer.
 
 If a query fails, try fix it, if the database doesn't contain the answer, or returns no results,
 output a summary of your actions in your final answer, e.g., "Successfully created a view of the data"
 
+Execute queries separately! One per action.
+
 Let's go!
 
 Question: {input}
-Thought: I should describe the most relevant tables in the database to see what columns will be useful.
-{agent_scratchpad}"""
+Thought: I should look at the first few rows of {agent_scratchpad}"""
 
 
 prefix = """Given an input question, identify the relevant tables and relevant columns, then create
