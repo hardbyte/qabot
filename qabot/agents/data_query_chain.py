@@ -1,6 +1,7 @@
 from langchain import LLMChain
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
 from langchain.agents.chat.base import ChatAgent
+from langchain.chat_models import ChatOpenAI
 
 from qabot.tools.duckdb_execute_tool import DuckDBTool
 from qabot.duckdb_query import run_sql_catch_error
@@ -9,11 +10,11 @@ from qabot.tools.describe_duckdb_table import describe_table_or_view
 
 def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=False):
     tools = [
-        # Tool(
-        #     name="Show Tables",
-        #     func=lambda _: run_sql_catch_error(database, "show tables;"),
-        #     description="Useful to show the available tables and views. Empty input required."
-        # ),
+        Tool(
+            name="Show Tables",
+            func=lambda _: run_sql_catch_error(database, "show tables;"),
+            description="Useful to show the available tables and views. Empty input required."
+        ),
         Tool(
             name="Describe Table",
             func=lambda table: describe_table_or_view(database, table),
@@ -27,11 +28,6 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
         DuckDBTool(engine=database),
     ]
 
-    # prompt = PromptTemplate(
-    #     input_variables=["input", "agent_scratchpad"],
-    #     template=_DEFAULT_TEMPLATE,
-    # )
-
     prompt = ChatAgent.create_prompt(
         tools,
         prefix=prefix,
@@ -39,6 +35,7 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
         input_variables=["input", "agent_scratchpad", 'table_names'],
     )
 
+    #llm = ChatOpenAI(temperature=0)
     llm_chain = LLMChain(llm=llm, prompt=prompt)
 
     tool_names = [tool.name for tool in tools]
@@ -59,10 +56,12 @@ suffix = """After outputting the Action Input you never output an Observation, t
 List the relevant SQL queries you ran in your Final Answer. If you don't want to use any tools it's 
 okay to give your message as a Final Answer.
 
+Unless explicitly told to import data, do not import external data. Data required to answer the question should already available in a table. 
+
 If a query fails, try fix it, if the database doesn't contain the answer, or returns no results,
 output a summary of your actions in your final answer, e.g., "Successfully created a view of the data"
 
-Execute queries separately! One per action.
+Execute queries separately! One per action. 
 
 Let's go!
 

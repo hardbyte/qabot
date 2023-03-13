@@ -116,7 +116,6 @@ def main(
         callback_manager.add_handler(output_callback)
 
 
-
         if not disable_cache:
             t = progress.add_task(description="Setting up cache...", total=None)
             configure_caching(settings.QABOT_CACHE_DATABASE_URI)
@@ -147,7 +146,7 @@ def main(
             print("[bold red]Query: [/][green]" + query)
 
             inputs = {
-                "input": chat_history[0] + query,
+                "input": query,
                 #"table_names": run_sql_catch_error(database_engine, "show tables")
             }
 

@@ -1,7 +1,8 @@
 import textwrap
 
 from langchain import LLMMathChain
-from langchain.agents import Tool, create_sql_agent, initialize_agent
+from langchain.agents import Tool, initialize_agent
+from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAIChat
 from langchain.memory import ConversationBufferMemory
 
@@ -18,13 +19,17 @@ def create_agent_executor(
         verbose=False,
 ):
 
-
     llm = OpenAIChat(
         model_name="gpt-3.5-turbo",
         temperature=0.0
     )
 
-    calculator_chain = LLMMathChain(llm=llm, verbose=False)
+    # llm = ChatOpenAI(
+    #     model_name="gpt-3.5-turbo",
+    #     temperature=0.0
+    # )
+
+    python_chain = LLMMathChain(llm=llm, verbose=False)
 
     db_chain = get_duckdb_data_query_chain(
         llm=llm,
@@ -35,9 +40,9 @@ def create_agent_executor(
 
     tools = [
         Tool(
-            name="Calculator",
-            func=calculator_chain.run,
-            description="Useful for when you need to answer questions about math"
+            name="Python",
+            func=python_chain.run,
+            description="Useful for when you need to run a quick simulation, or answer questions about math"
         ),
         # Tool(
         #     name="DuckDB QA System",
