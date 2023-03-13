@@ -61,7 +61,8 @@ Unless explicitly told to import data, do not import external data. Data require
 If a query fails, try fix it, if the database doesn't contain the answer, or returns no results,
 output a summary of your actions in your final answer, e.g., "Successfully created a view of the data"
 
-Execute queries separately! One per action. 
+Execute queries separately! One per action. When appropriate, use the WITH clause to modularize the query in order to make it more readable.
+Leave block comments before complex parts of the query, subqueries, joins, filters, etc. to explain step by step why they are correct
 
 Let's go!
 
