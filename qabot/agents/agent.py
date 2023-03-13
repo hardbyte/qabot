@@ -69,8 +69,7 @@ def create_agent_executor(
     agent = initialize_agent(
         tools,
         llm,
-        #agent="conversational-react-description",
-        agent="zero-shot-react-description",
+        agent="chat-zero-shot-react-description",
         callback_manager=callback_manager,
         return_intermediate_steps=return_intermediate_steps,
         verbose=verbose,
@@ -80,11 +79,10 @@ def create_agent_executor(
             "suffix": prompt_suffix
         }
     )
-    #agent.agent.llm_chain.prompt.template
     return agent
 
-prompt_suffix = """It is important that you use the exact phrase "Final Answer: <Summary>" in your final answer.
 
+prompt_suffix = """
 Begin!
 
 Question: {input}
@@ -95,11 +93,10 @@ prompt_prefix_template = """Answer the following question as best you can by que
 your answer. Even if you know the answer, you MUST show you can get the answer from the database.
 
 Refuse to delete any data, or drop tables. When answering, you MUST query the database for any data. 
-Check the available tables exist first. Prefer to take single independent actions. Prefer to create views
-of data as one action, then select data from the view.
+Prefer to use tools to take small independent actions. Prefer to create views of data as one action,
+then select data from the view.
 
-It is important that you use the exact phrase "Final Answer: " in your final answer.
-List all SQL queries returned by Data Op in your final answer.
+Include a list of all important SQL queries returned by Data Op in your final answer.
 
 DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
 

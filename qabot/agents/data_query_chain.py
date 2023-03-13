@@ -1,5 +1,6 @@
 from langchain import LLMChain
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
+from langchain.agents.chat.base import ChatAgent
 
 from qabot.tools.duckdb_execute_tool import DuckDBTool
 from qabot.duckdb_query import run_sql_catch_error
@@ -31,7 +32,7 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
     #     template=_DEFAULT_TEMPLATE,
     # )
 
-    prompt = ZeroShotAgent.create_prompt(
+    prompt = ChatAgent.create_prompt(
         tools,
         prefix=prefix,
         suffix=suffix,
@@ -42,7 +43,7 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
 
     tool_names = [tool.name for tool in tools]
 
-    agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names,)
+    agent = ChatAgent(llm_chain=llm_chain, allowed_tools=tool_names,)
     agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
         tools=tools,
@@ -58,14 +59,9 @@ suffix = """After outputting the Action Input you never output an Observation, t
 List the relevant SQL queries you ran in your final answer.
 
 If a query fails, try fix it, if the database doesn't contain the answer, or returns no results,
-output a summary of your actions in your final answer. It is important that you use the exact format:
+output a summary of your actions in your final answer, e.g., "Successfully created a view of the data"
 
-Final Answer: I have successfully created a view of the data.
-
-Queries should be output on one line and don't use any escape characters. 
-
-Let's go! Remember it is important that you use the exact phrase "Final Answer: " to begin your
-final answer.
+Let's go!
 
 Question: {input}
 Thought: I should describe the most relevant tables in the database to see what columns will be useful.

@@ -12,7 +12,7 @@ qabot = "qabot.cli:run"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-langchain = "^0.0.107"
+langchain = { git = "git@github.com:hardbyte/langchain.git", branch = "fix/chat-prompt-custom-vars" }
 openai = "^0.27.0"
 psycopg2-binary = "^2.9.5"
 duckdb-engine = "^0.6.9"
