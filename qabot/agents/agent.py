@@ -62,8 +62,9 @@ def create_agent_executor(
         Tool(
             name="Data Op",
             func=lambda input: db_chain({
-                'table_names': lambda _: run_sql_catch_error(database_engine, "show tables;"),
-                'input': input}),
+                'table_names': run_sql_catch_error(database_engine, "show tables;"),
+                'input': input}
+            ),
             description=textwrap.dedent("""Useful for when you need to operate on data and answer individual questions
             requiring data. Input should be in the form of a natural language question containing full context
             including what tables and columns are relevant to the question. Use only after data is present and loaded.
