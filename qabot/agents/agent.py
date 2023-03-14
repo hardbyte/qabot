@@ -73,12 +73,12 @@ def create_agent_executor(
         )
     ]
 
-    memory = ConversationBufferMemory(memory_key="chat_history", output_key="output")
+    memory = ConversationBufferMemory(memory_key="chat_history", output_key="output", return_messages=True)
 
     agent = initialize_agent(
         tools,
         llm,
-        agent="conversational-react-description",
+        agent="chat-conversational-react-description",
         callback_manager=callback_manager,
         return_intermediate_steps=return_intermediate_steps,
         verbose=verbose,
