@@ -1,5 +1,7 @@
 from langchain import LLMChain
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
+from langchain.agents.chat.base import ChatAgent
+from langchain.chat_models import ChatOpenAI
 
 from qabot.tools.duckdb_execute_tool import DuckDBTool
 from qabot.duckdb_query import run_sql_catch_error
@@ -16,7 +18,7 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
         Tool(
             name="Describe Table",
             func=lambda table: describe_table_or_view(database, table),
-            description="Useful to show the column names and types of a table or view. Use a valid table name as the input."
+            description="Useful to show the column names and types of a table or view. Also shows the first few rows. Use a valid table name as the input."
         ),
         Tool(
             name="Query Inspector",
@@ -26,23 +28,19 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
         DuckDBTool(engine=database),
     ]
 
-    # prompt = PromptTemplate(
-    #     input_variables=["input", "agent_scratchpad"],
-    #     template=_DEFAULT_TEMPLATE,
-    # )
-
-    prompt = ZeroShotAgent.create_prompt(
+    prompt = ChatAgent.create_prompt(
         tools,
         prefix=prefix,
         suffix=suffix,
         input_variables=["input", "agent_scratchpad", 'table_names'],
     )
 
+    #llm = ChatOpenAI(temperature=0)
     llm_chain = LLMChain(llm=llm, prompt=prompt)
 
     tool_names = [tool.name for tool in tools]
 
-    agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names,)
+    agent = ChatAgent(llm_chain=llm_chain, allowed_tools=tool_names,)
     agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
         tools=tools,
@@ -55,21 +53,21 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
 
 suffix = """After outputting the Action Input you never output an Observation, that will be provided to you.
 
-List the relevant SQL queries you ran in your final answer.
+List the relevant SQL queries you ran in your Final Answer. If you don't want to use any tools it's 
+okay to give your message as a Final Answer.
+
+Unless explicitly told to import data, do not import external data. Data required to answer the question should already available in a table. 
 
 If a query fails, try fix it, if the database doesn't contain the answer, or returns no results,
-output a summary of your actions in your final answer. It is important that you use the exact format:
+output a summary of your actions in your final answer, e.g., "Successfully created a view of the data"
 
-Final Answer: I have successfully created a view of the data.
+Execute queries separately! One per action. When appropriate, use the WITH clause to modularize the query in order to make it more readable.
+Leave block comments before complex parts of the query, subqueries, joins, filters, etc. to explain step by step why they are correct
 
-Queries should be output on one line and don't use any escape characters. 
-
-Let's go! Remember it is important that you use the exact phrase "Final Answer: " to begin your
-final answer.
+Let's go!
 
 Question: {input}
-Thought: I should describe the most relevant tables in the database to see what columns will be useful.
-{agent_scratchpad}"""
+Thought: I should look at the first few rows of {agent_scratchpad}"""
 
 
 prefix = """Given an input question, identify the relevant tables and relevant columns, then create

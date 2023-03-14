@@ -9,7 +9,7 @@ from qabot.duckdb_query import run_sql_catch_error
 class DuckDBTool(BaseTool):
     name = "execute"
     description = """useful for when you need to run SQL queries against a DuckDB database.
-    Input to this tool is a detailed and correct SQL query, output is a result from the database.
+    Input to this tool is a single correct SQL statement, output is the result from the database.
     If the query is not correct, an error message will be returned. 
     If an error is returned, rewrite the query, check the query, and try again.
     """
