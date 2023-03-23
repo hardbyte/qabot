@@ -1,8 +1,10 @@
 import textwrap
 
 from langchain import LLMMathChain
-from langchain.agents import Tool, create_sql_agent, initialize_agent
+from langchain.agents import Tool, initialize_agent
+from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAIChat
+from langchain.memory import ConversationBufferMemory
 
 from qabot.agents.data_query_chain import get_duckdb_data_query_chain
 from qabot.duckdb_query import run_sql_catch_error
@@ -15,16 +17,20 @@ def create_agent_executor(
         return_intermediate_steps=False,
         callback_manager=None,
         verbose=False,
+        model_name='gpt-3.5-turbo'
 ):
 
-
     llm = OpenAIChat(
-        model_name="gpt-3.5-turbo",
+        model_name=model_name,
         temperature=0.0
     )
 
+    # llm = ChatOpenAI(
+    #     model_name="gpt-3.5-turbo",
+    #     temperature=0.0
+    # )
 
-    calculator_chain = LLMMathChain(llm=llm, verbose=False)
+    python_chain = LLMMathChain(llm=llm, verbose=False)
 
     db_chain = get_duckdb_data_query_chain(
         llm=llm,
@@ -35,9 +41,9 @@ def create_agent_executor(
 
     tools = [
         Tool(
-            name="Calculator",
-            func=calculator_chain.run,
-            description="Useful for when you need to answer questions about math"
+            name="Python",
+            func=python_chain.run,
+            description="Useful for when you need to run a quick simulation, or answer questions about math"
         ),
         # Tool(
         #     name="DuckDB QA System",
@@ -57,56 +63,52 @@ def create_agent_executor(
         Tool(
             name="Data Op",
             func=lambda input: db_chain({
-                'table_names': lambda _: run_sql_catch_error(database_engine, "show tables;"),
-                'input': input}),
-            description=textwrap.dedent("""useful for when you need to operate on data and answer questions
+                'table_names': run_sql_catch_error(database_engine, "show tables;"),
+                'input': input}
+            ),
+            description=textwrap.dedent("""Useful for when you need to operate on data and answer individual questions
             requiring data. Input should be in the form of a natural language question containing full context
             including what tables and columns are relevant to the question. Use only after data is present and loaded.
+            Prefer to take small independent steps with this tool.
             """,)
         )
     ]
 
+    memory = ConversationBufferMemory(memory_key="chat_history", output_key="output", return_messages=True)
+
     agent = initialize_agent(
         tools,
         llm,
-        #agent="conversational-react-description",
-        agent="zero-shot-react-description",
+        agent="chat-conversational-react-description",
         callback_manager=callback_manager,
         return_intermediate_steps=return_intermediate_steps,
         verbose=verbose,
         agent_kwargs={
-            "input_variables": ["input", 'agent_scratchpad', 'table_names'],
-            "prefix": prompt_prefix_template,
-            "suffix": prompt_suffix
-        }
+            #"input_variables": ["input", 'agent_scratchpad', 'chat_history'],
+            "prefix": prompt_prefix_template
+        },
+        memory=memory
     )
-    #agent.agent.llm_chain.prompt.template
     return agent
 
-prompt_suffix = """It is important that you use the exact phrase "Final Answer: <Summary>" in your final answer.
 
-Begin!
+prompt_prefix_template = """Qabot is a large language model trained to interact with DuckDB.
 
-Question: {input}
-Thought: I should look at the tables in the database to see what I can query.
-{agent_scratchpad}"""
+Qabot is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explorations on a wide range of topics relating to data.
 
-prompt_prefix_template = """Answer the following question as best you can by querying for data to back up
-your answer. Even if you know the answer, you MUST show you can get the answer from the database.
+Qabot answers questions by first querying for data to guide its answer. Qabot asks any clarifying questions it needs to.
 
-Refuse to delete any data, or drop tables. When answering, you MUST query the database for any data. 
-Check the available tables exist first. Prefer to take single independent actions. Prefer to create views
-of data as one action, then select data from the view.
+Qabot refuses to delete any data, or drop tables. 
 
-It is important that you use the exact phrase "Final Answer: " in your final answer.
-List all SQL queries returned by Data Op in your final answer.
+Qabot prefers to split questions into small discrete steps, for example creating views of data as one action, then selecting data from the created view to get to the final answer.
 
-DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
+Qabot includes a list of all important SQL queries returned by Data Op in its final answers.
 
-If the question does not seem related to the database, just return "I don't know" as the answer.
+Qabot does NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
 
-You have access to the following data tables:
-{table_names}
+If the question does not seem related to the database, Qabot returns "I don't know" as the answer.
+TOOLS:
+------
 
-Only use the below tools. You have access to the following tools:
+Qabot has access to the following tools:
 """
