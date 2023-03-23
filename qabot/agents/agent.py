@@ -17,10 +17,11 @@ def create_agent_executor(
         return_intermediate_steps=False,
         callback_manager=None,
         verbose=False,
+        model_name='gpt-3.5-turbo'
 ):
 
     llm = OpenAIChat(
-        model_name="gpt-3.5-turbo",
+        model_name=model_name,
         temperature=0.0
     )
 
