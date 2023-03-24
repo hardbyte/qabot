@@ -67,7 +67,7 @@ Leave block comments before complex parts of the query, subqueries, joins, filte
 Let's go!
 
 Question: {input}
-Thought: I should look at the first few rows of {agent_scratchpad}"""
+Thought: {agent_scratchpad}"""
 
 
 prefix = """Given an input question, identify the relevant tables and relevant columns, then create

@@ -6,7 +6,9 @@ from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAIChat
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
-from langchain.output_parsers import StructuredOutputParser, ListOutputParser, ResponseSchema
+from langchain.output_parsers import PydanticOutputParser
+from langchain.tools.human.tool import HumanInputRun
+
 from qabot.agents.data_query_chain import get_duckdb_data_query_chain
 from qabot.duckdb_query import run_sql_catch_error
 from qabot.tools.describe_duckdb_table import describe_table_or_view
@@ -71,7 +73,8 @@ def create_agent_executor(
             Input should be a natural language question containing full context including what tables and columns are relevant to the question. 
             Use only after data is present and loaded. Prefer to request small independent steps with this tool.
             """,)
-        )
+        ),
+        HumanInputRun(),
     ]
 
     memory = ConversationBufferMemory(memory_key="chat_history", output_key="output", return_messages=True)
