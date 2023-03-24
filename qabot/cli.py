@@ -118,7 +118,7 @@ def main(
 
         if not disable_cache:
             t = progress.add_task(description="Setting up cache...", total=None)
-            configure_caching(settings.QABOT_CACHE_DATABASE_URI)
+            configure_caching(database_engine)
             progress.remove_task(t)
 
         t2 = progress.add_task(description="Creating LLM agent using langchain...", total=None)

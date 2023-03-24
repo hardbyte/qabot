@@ -5,7 +5,8 @@ from langchain.agents import Tool, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAIChat
 from langchain.memory import ConversationBufferMemory
-
+from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from langchain.output_parsers import StructuredOutputParser, ListOutputParser, ResponseSchema
 from qabot.agents.data_query_chain import get_duckdb_data_query_chain
 from qabot.duckdb_query import run_sql_catch_error
 from qabot.tools.describe_duckdb_table import describe_table_or_view
@@ -66,15 +67,16 @@ def create_agent_executor(
                 'table_names': run_sql_catch_error(database_engine, "show tables;"),
                 'input': input}
             ),
-            description=textwrap.dedent("""Useful for when you need to operate on data and answer individual questions
-            requiring data. Input should be in the form of a natural language question containing full context
-            including what tables and columns are relevant to the question. Use only after data is present and loaded.
-            Prefer to take small independent steps with this tool.
+            description=textwrap.dedent("""Useful for when you need to operate on data. 
+            Input should be a natural language question containing full context including what tables and columns are relevant to the question. 
+            Use only after data is present and loaded. Prefer to request small independent steps with this tool.
             """,)
         )
     ]
 
     memory = ConversationBufferMemory(memory_key="chat_history", output_key="output", return_messages=True)
+
+
 
     agent = initialize_agent(
         tools,
@@ -86,6 +88,7 @@ def create_agent_executor(
         agent_kwargs={
             #"input_variables": ["input", 'agent_scratchpad', 'chat_history'],
             "prefix": prompt_prefix_template
+            #"prompt": prompt
         },
         memory=memory
     )
@@ -96,17 +99,16 @@ prompt_prefix_template = """Qabot is a large language model trained to interact 
 
 Qabot is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explorations on a wide range of topics relating to data.
 
-Qabot answers questions by first querying for data to guide its answer. Qabot asks any clarifying questions it needs to.
+Qabot answers questions by first querying for data to guide its answer. Qabot responds with clarifying questions if the request isn't clear. 
 
-Qabot refuses to delete any data, or drop tables. 
-
-Qabot prefers to split questions into small discrete steps, for example creating views of data as one action, then selecting data from the created view to get to the final answer.
+Qabot prefers to split questions into small discrete steps, creating views of data as one action, then selecting data from the created view to get to the final answer.
 
 Qabot includes a list of all important SQL queries returned by Data Op in its final answers.
 
 Qabot does NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database.
 
 If the question does not seem related to the database, Qabot returns "I don't know" as the answer.
+
 TOOLS:
 ------
 
