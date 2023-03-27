@@ -1,8 +1,11 @@
 import os
 from typing import Tuple
 from urllib.parse import urlparse
+import tempfile
+
 import duckdb
 from duckdb import ParserException, ProgrammingError
+import requests
 
 
 def uri_validator(x):
@@ -66,11 +69,26 @@ def load_external_data_into_db(conn: duckdb.DuckDBPyConnection, file_path, allow
     except (ParserException, ProgrammingError) as e:
         table_name = "data"
 
-    # The SQLAgent doesn't appear to see view's just yet, so we'll create a table instead
+    # try to create a view then fallback to a table if it fails
     use_view = allow_view and is_url
+    try:
+        create_statement = f"create {'view' if use_view else 'table'} '{table_name}' as select * from '{file_path}';"
+        conn.sql(create_statement)
+    except duckdb.IOException as e:
+        # This can occur if the server doesn't send Content-Length headers
+        # We can work around this by downloading the data locally and then
+        # loading it from there. We assume CSV files for now
+        if is_url:
 
-    create_statement = f"create {'view' if use_view else 'table'} '{table_name}' as select * from '{file_path}';"
+            with tempfile.NamedTemporaryFile(mode='w+b', suffix='.csv', delete=False) as f:
+                r = requests.get(file_path, stream=True)
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+                f.flush()
 
-    conn.sql(create_statement)
+                create_statement = f"create table '{table_name}' as select * from read_csv_auto('{f.name}');"
+
+        conn.sql(create_statement)
 
     return create_statement
