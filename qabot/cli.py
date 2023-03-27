@@ -130,6 +130,7 @@ def main(
             return_intermediate_steps=True,
             callback_manager=callback_manager,
             verbose=False,
+            model_name=settings.QABOT_MODEL_NAME,
         )
 
         progress.remove_task(t2)

@@ -24,8 +24,7 @@ def create_agent_executor(
 ):
 
     llm = OpenAIChat(
-        model_name=model_name,
-        temperature=0.0
+        model_name=model_name
     )
 
     # llm = ChatOpenAI(
