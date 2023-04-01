@@ -1,7 +1,6 @@
 from langchain import LLMChain
-from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
+from langchain.agents import AgentExecutor, Tool
 from langchain.agents.chat.base import ChatAgent
-from langchain.chat_models import ChatOpenAI
 
 from qabot.tools.duckdb_execute_tool import DuckDBTool
 from qabot.duckdb_query import run_sql_catch_error
@@ -36,11 +35,19 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
     )
 
     #llm = ChatOpenAI(temperature=0)
+    # llm_chain = SimpleSequentialChain(
+    #     chains=[
+    #         LLMChain(llm=llm, prompt=prompt),
+    #         LLMCheckerChain(llm=llm, verbose=True),
+    #     ]
+    # )
+
     llm_chain = LLMChain(llm=llm, prompt=prompt)
 
     tool_names = [tool.name for tool in tools]
 
     agent = ChatAgent(llm_chain=llm_chain, allowed_tools=tool_names,)
+
     agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
         tools=tools,
@@ -89,7 +96,7 @@ select query to returning 5 results.
 Pay attention to use only the column names that you can see in the schema description. Pay attention
 to which column is in which table.
 
-You have access to the following tables/views:
+You only have access to the following tables/views:
 {table_names}
 
 You have access to the following tools:

@@ -12,6 +12,7 @@ from langchain.tools.human.tool import HumanInputRun
 from qabot.agents.data_query_chain import get_duckdb_data_query_chain
 from qabot.duckdb_query import run_sql_catch_error
 from qabot.tools.describe_duckdb_table import describe_table_or_view
+from qabot.tools.wikidata import WikiDataQueryTool
 
 
 def create_agent_executor(
@@ -23,14 +24,11 @@ def create_agent_executor(
         model_name='gpt-3.5-turbo'
 ):
 
-    llm = OpenAIChat(
-        model_name=model_name
-    )
 
-    # llm = ChatOpenAI(
-    #     model_name="gpt-3.5-turbo",
-    #     temperature=0.0
-    # )
+    llm = ChatOpenAI(
+        model_name=model_name,
+        temperature=0.0
+    )
 
     python_chain = LLMMathChain(llm=llm, verbose=False)
 
@@ -62,12 +60,13 @@ def create_agent_executor(
             func=lambda table: describe_table_or_view(database_engine, table),
             description="Useful to show the column names and types of a table or view. Use the table name as the input."
         ),
+        WikiDataQueryTool(),
         Tool(
             name="Data Op",
-            func=lambda input: db_chain({
+            func=lambda query: db_chain({
                 'table_names': run_sql_catch_error(database_engine, "show tables;"),
-                'input': input}
-            ),
+                'input': query
+            }),
             description=textwrap.dedent("""Useful for when you need to operate on data. 
             Input should be a natural language question containing full context including what tables and columns are relevant to the question. 
             Use only after data is present and loaded. Prefer to request small independent steps with this tool.
@@ -77,8 +76,6 @@ def create_agent_executor(
     ]
 
     memory = ConversationBufferMemory(memory_key="chat_history", output_key="output", return_messages=True)
-
-
 
     agent = initialize_agent(
         tools,
@@ -97,13 +94,16 @@ def create_agent_executor(
     return agent
 
 
-prompt_prefix_template = """Qabot is a large language model trained to interact with DuckDB.
+prompt_prefix_template = """You are Qabot, a large language model trained to interact with DuckDB.
 
-Qabot is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explorations on a wide range of topics relating to data.
+Qabot is designed to be able to assist with a wide range of tasks, from answering simple questions to 
+providing in-depth explorations on a wide range of topics relating to data.
 
-Qabot answers questions by first querying for data to guide its answer. Qabot responds with clarifying questions if the request isn't clear. 
+Qabot answers questions by first querying for data to guide its answer. Qabot responds with clarifying
+questions if the request isn't clear. 
 
-Qabot prefers to split questions into small discrete steps, creating views of data as one action, then selecting data from the created view to get to the final answer.
+Qabot prefers to split questions into small discrete steps, creating views of data as one action, then
+selecting data from the created view to get to the final answer.
 
 Qabot includes a list of all important SQL queries returned by Data Op in its final answers.
 
