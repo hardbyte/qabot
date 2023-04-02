@@ -3,6 +3,34 @@
 Query local or remote files with natural language queries powered by
 `langchain` and `gpt-3.5-turbo` and `duckdb` 🦆.
 
+Will query Wikidata and local files.
+
+Usage:
+
+```
+$ EXPORT OPENAI_API_KEY=sk-...
+$ EXPORT QABOT_MODEL_NAME=gpt-4
+$ qabot -q "How many Hospitals are there located in Beijing"
+Total tokens 1773 approximate cost in USD: 0.05634
+
+Result:
+There are 39 hospitals located in Beijing.
+ 🚀 anything else I can help you with?: what are the star war films
+Query: what are the star war films
+Intermediate Steps: 
+  Step 1
+
+    wikidata
+      SELECT DISTINCT ?film ?filmLabel WHERE { ?film wdt:P31 wd:Q11424; wdt:P179 wd:Q22092344. SERVICE wikibase:label { bd:serviceParam wikibase:language '[AUTO_LANGAGE],en'. } } ORDER BY ?film
+
+Total tokens 4099 approximate cost in USD: 0.13305
+
+
+Result:
+The Star Wars films are: 1. Star Wars: Episode I – The Phantom Menace, 2. Star Wars: Episode II – Attack of the Clones, 3. Star Wars: Episode III – Revenge of the Sith, 4. Star Wars: Episode IV – A
+New Hope, 5. Star Wars: Episode V – The Empire Strikes Back, 6. Star Wars: Episode VI – Return of the Jedi, 7. Star Wars: Episode VII – The Force Awakens, 8. Star Wars: Episode VIII – The Last 
+Jedi, and 9. Star Wars Episode IX: The Rise of Skywalker.
+```
 
 
 Works on local CSV files:

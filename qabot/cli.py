@@ -164,9 +164,7 @@ def main(
 
                 print()
 
-            print("Total tokens", output_callback.total_tokens, f"approximate cost assuming GPT-3.5 ${output_callback.total_tokens * 0.002/1000}")
-            # TODO: On next release of langchain >0.0.129 the total cost will be much more accurate:
-            #print("Total tokens", output_callback.total_tokens, f"approximate cost ${openai_callback.total_cost}")
+            print("Total tokens", output_callback.total_tokens, f"approximate cost in USD: {openai_callback.total_cost}")
 
             # Stop the progress before outputting result and prompting for input
             progress.stop()
