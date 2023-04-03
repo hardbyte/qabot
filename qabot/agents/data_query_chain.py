@@ -1,10 +1,36 @@
+import enum
+import re
+
 from langchain import LLMChain
 from langchain.agents import AgentExecutor, Tool
 from langchain.agents.chat.base import ChatAgent
+from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
+from langchain.output_parsers import PydanticOutputParser
+from langchain.prompts import BaseChatPromptTemplate
+from langchain import SerpAPIWrapper, LLMChain
+from langchain.chat_models import ChatOpenAI
+from typing import List, Union
+from langchain.schema import AgentAction, AgentFinish, HumanMessage
+from langchain.tools import BaseTool
+from pydantic import Field, BaseModel
 
 from qabot.tools.duckdb_execute_tool import DuckDBTool
 from qabot.duckdb_query import run_sql_catch_error
 from qabot.tools.describe_duckdb_table import describe_table_or_view
+
+
+#
+# class QueryAgentResponse(BaseModel):
+#     response: str = Field(
+#         description="The extracted query, clarification request, or a note explaining why the query is unrelated to the data."
+#     )
+#
+#     action: str = Field(
+#         description="The single action that should be taken. If the action is 'query', then the query field must not be empty."
+#     )
+#
+#
+# parser = PydanticOutputParser(pydantic_object=QueryAgentResponse)
 
 
 def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=False):
@@ -27,11 +53,12 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
         DuckDBTool(engine=database),
     ]
 
-    prompt = ChatAgent.create_prompt(
-        tools,
-        prefix=prefix,
-        suffix=suffix,
-        input_variables=["input", "agent_scratchpad", 'table_names'],
+    prompt = CustomPromptTemplate(
+        template=template,
+        tools=tools,
+        # This omits the `agent_scratchpad`, `tools`, `tool_names` variables because
+        # they are generated dynamically by the CustomPromptTemplate.
+        input_variables=["input", "intermediate_steps", "table_names"]
     )
 
     #llm = ChatOpenAI(temperature=0)
@@ -42,11 +69,19 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
     #     ]
     # )
 
+    output_parser = CustomOutputParser()
+
+
+    # LLM chain consisting of the LLM and a prompt
     llm_chain = LLMChain(llm=llm, prompt=prompt)
 
     tool_names = [tool.name for tool in tools]
 
-    agent = ChatAgent(llm_chain=llm_chain, allowed_tools=tool_names,)
+    agent = LLMSingleActionAgent(
+        llm_chain=llm_chain,
+        output_parser=output_parser,
+        stop=["\nObservation:"],
+        allowed_tools=tool_names)
 
     agent_executor = AgentExecutor.from_agent_and_tools(
         agent=agent,
@@ -58,7 +93,30 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
     return agent_executor
 
 
-suffix = """After outputting the Action Input you never output an Observation, that will be provided to you.
+
+template = """Given an input question, identify the relevant tables and columns, then create
+one single syntactically correct DuckDB query to inspect, then execute, before returning the answer. 
+
+If the input is a valid looking SQL query selecting data or creating a view, execute it directly. 
+
+Even if you know the answer, you MUST show you can get the answer from the database.
+Inspect your query before execution.
+
+Only execute one statement at a time. You may import data only if given a path for example:
+- CREATE table customers AS SELECT * FROM 'data/records.json';
+- CREATE VIEW covid AS SELECT * FROM 's3://covid19-lake/data.csv';
+
+Unless the user specifies in their question a specific number of examples to obtain, limit your
+select query to returning 5 results.
+
+Pay attention to use only the column names that you can see in the schema description. Pay attention
+to which column is in which table.
+
+The following tables/views already exist:
+{table_names}
+
+You have access to the following tools:
+{tools}
 
 List the relevant SQL queries you ran in your Final Answer. If you don't want to use any tools it's 
 okay to give your message as a Final Answer.
@@ -69,39 +127,63 @@ If a query fails, try fix it, if the database doesn't contain the answer, or ret
 output a summary of your actions in your final answer, e.g., "Successfully created a view of the data"
 
 Execute queries separately! One per action. When appropriate, use the WITH clause to modularize the query in order to make it more readable.
-Leave block comments before complex parts of the query, subqueries, joins, filters, etc. to explain step by step why they are correct
+Leave block comments before complex parts of the query, sub-queries, joins, filters, etc. to explain step by step why they are correct
 
 Let's go!
 
 Question: {input}
-Thought: {agent_scratchpad}"""
-
-
-prefix = """Given an input question, identify the relevant tables and relevant columns, then create
-one single syntactically correct DuckDB query to inspect, then execute, before returning the answer. 
-If the input is a valid looking SQL query selecting data or creating a view, execute it directly. 
-
-Even if you know the answer, you MUST show you can get the answer from the database.
-Inspect your query before execution.
-
-Refuse to delete any data, or drop tables. You only execute one statement at a time. You may import data.
-
-Example imports:
-- CREATE table customers AS SELECT * FROM 'data/records.json';
-- CREATE VIEW covid AS SELECT * FROM 's3://covid19-lake/data.csv';
-
-Unless the user specifies in their question a specific number of examples to obtain, limit your
-select query to returning 5 results.
-
-Pay attention to use only the column names that you can see in the schema description. Pay attention
-to which column is in which table.
-
-You only have access to the following tables/views:
-{table_names}
-
-You have access to the following tools:
+{agent_scratchpad}
 """
 
+
+class CustomOutputParser(AgentOutputParser):
+
+    def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
+        # Check if agent should finish
+        if "Final Answer:" in llm_output:
+            return AgentFinish(
+                # Return values is generally always a dictionary with a single `output` key
+                # It is not recommended to try anything else at the moment :)
+                return_values={"output": llm_output.split("Final Answer:")[-1].strip()},
+                log=llm_output,
+            )
+        # Parse out the action and action input
+        regex = r"Action: (.*?)[\n]*Action Input:[\s]*(.*)"
+        match = re.search(regex, llm_output, re.DOTALL)
+        if not match:
+            raise ValueError(f"Could not parse LLM output: `{llm_output}`")
+        action = match.group(1).strip()
+        action_input = match.group(2)
+        # Return the action and action input
+        return AgentAction(tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output)
+
+
+class CustomPromptTemplate(BaseChatPromptTemplate):
+    # The template to use
+    template: str
+    # The list of tools available
+    tools: List[BaseTool]
+
+    def format_messages(self, **kwargs):
+        # Get the intermediate steps (AgentAction, Observation tuples)
+        # Format them in a particular way
+        intermediate_steps = kwargs.pop("intermediate_steps")
+        thoughts = ""
+        for action, observation in intermediate_steps:
+            thoughts += action.log
+            thoughts += f"\nObservation: {observation}\nThought: "
+
+        # Set the agent_scratchpad variable to that value
+        kwargs["agent_scratchpad"] = thoughts
+        # Create a tools variable from the list of tools provided
+        kwargs["tools"] = "\n".join([f"{tool.name}: {tool.description}" for tool in self.tools])
+        # Create a list of tool names for the tools provided
+        kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
+
+        # TODO probably good to get the updated table names here
+        # table_names =
+        formatted = self.template.format(**kwargs)
+        return [HumanMessage(content=formatted)]
 
 
 # Other examples
