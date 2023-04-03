@@ -43,7 +43,7 @@ class WikiDataQueryTool(BaseTool):
     """
 
     name = "wikidata"
-    description = """useful for when you need specific data from Wikidata.
+    description = """Useful for when you need specific data from Wikidata.
     Input to this tool is a single correct SPARQL statement for Wikidata. Limit all requests to 10 or fewer rows. 
     
     Output is the raw response in json. If the query is not correct, an error message will be returned. 

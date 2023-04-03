@@ -53,12 +53,12 @@ def create_agent_executor(
         Tool(
             name="Show Tables",
             func=lambda _: run_sql_catch_error(database_engine, "show tables"),
-            description="Useful to show the available tables and views. Empty input required."
+            description="Useful to show the locally available database tables and views. Empty input required."
         ),
         Tool(
             name="Describe Table",
             func=lambda table: describe_table_or_view(database_engine, table),
-            description="Useful to show the column names and types of a table or view. Use the table name as the input."
+            description="Useful to show the column names and types of a local database table or view. Use the table name as the input."
         ),
         WikiDataQueryTool(),
         Tool(
@@ -100,7 +100,7 @@ Qabot is designed to be able to assist with a wide range of tasks, from answerin
 providing in-depth explorations on a wide range of topics relating to data.
 
 Qabot answers questions by first querying for data to guide its answer. Qabot responds with clarifying
-questions if the request isn't clear. 
+questions if the request isn't clear. Prefer local data over remote data.
 
 Qabot prefers to split questions into small discrete steps, creating views of data as one action, then
 selecting data from the created view to get to the final answer.
