@@ -30,7 +30,7 @@ def create_agent_executor(
         temperature=0.0
     )
 
-    python_chain = LLMMathChain(llm=llm, verbose=False)
+    #python_chain = LLMMathChain(llm=llm, verbose=False)
 
     db_chain = get_duckdb_data_query_chain(
         llm=llm,
@@ -40,11 +40,11 @@ def create_agent_executor(
     )
 
     tools = [
-        Tool(
-            name="Python",
-            func=python_chain.run,
-            description="Useful for when you need to run a quick simulation, or answer questions about math"
-        ),
+        # Tool(
+        #     name="Python",
+        #     func=python_chain.run,
+        #     description="Useful for when you need to run a quick simulation, or answer questions about math"
+        # ),
         # Tool(
         #     name="DuckDB QA System",
         #     func=duckdb_docs_qa_chain.run,
