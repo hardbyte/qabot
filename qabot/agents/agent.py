@@ -21,7 +21,8 @@ def create_agent_executor(
         return_intermediate_steps=False,
         callback_manager=None,
         verbose=False,
-        model_name='gpt-3.5-turbo'
+        model_name='gpt-3.5-turbo',
+        allow_wikidata=True,
 ):
 
 
@@ -60,20 +61,22 @@ def create_agent_executor(
             func=lambda table: describe_table_or_view(database_engine, table),
             description="Useful to show the column names and types of a local database table or view. Use the table name as the input."
         ),
-        WikiDataQueryTool(),
         Tool(
             name="Data Op",
             func=lambda query: db_chain({
                 'table_names': run_sql_catch_error(database_engine, "show tables;"),
                 'input': query
             }),
-            description=textwrap.dedent("""Useful for when you need to operate on data. 
+            description=textwrap.dedent("""Useful to interact with local data tables. 
             Input should be a natural language question containing full context including what tables and columns are relevant to the question. 
             Use only after data is present and loaded. Prefer to request small independent steps with this tool.
             """,)
         ),
         HumanInputRun(),
     ]
+
+    if allow_wikidata:
+        tools.append(WikiDataQueryTool())
 
     memory = ConversationBufferMemory(memory_key="chat_history", output_key="output", return_messages=True)
 

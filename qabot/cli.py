@@ -79,6 +79,7 @@ def main(
         database_uri: Optional[str] = typer.Option(":memory:", "-d", "--database", help="DuckDB Database URI (e.g. '/tmp/qabot.duckdb')"),
         table: Optional[List[str]] = typer.Option(None, "--table", "-t", help="Limit queries to these tables (can be specified multiple times)"),
         disable_cache: bool = typer.Option(False, "--disable-cache", help="Disable caching of LLM queries"),
+        enable_wikidata: bool = typer.Option(False, "-w", "--wikidata", help='Allow querying from wikidata'),
         verbose: bool = typer.Option(False, "-v", "--verbose", help='Essentially debug output'),
 ):
     """
@@ -131,6 +132,7 @@ def main(
             callback_manager=callback_manager,
             verbose=False,
             model_name=settings.QABOT_MODEL_NAME,
+            allow_wikidata=settings.QABOT_ENABLE_WIKIDATA and enable_wikidata,
         )
 
         progress.remove_task(t2)

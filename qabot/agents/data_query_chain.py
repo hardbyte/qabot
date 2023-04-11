@@ -1,5 +1,7 @@
 import enum
-import re
+import json
+import textwrap
+from typing import Optional, List
 
 from langchain import LLMChain
 from langchain.agents import AgentExecutor, Tool
@@ -102,11 +104,11 @@ If the input is a valid looking SQL query selecting data or creating a view, exe
 Even if you know the answer, you MUST show you can get the answer from the database.
 Inspect your query before execution.
 
-Only execute one statement at a time. You may import data only if given a path for example:
+Only execute one statement at a time. You may import data only if given a path. For example:
 - CREATE table customers AS SELECT * FROM 'data/records.json';
 - CREATE VIEW covid AS SELECT * FROM 's3://covid19-lake/data.csv';
 
-Unless the user specifies in their question a specific number of examples to obtain, limit your
+Unless the user specifies in their question a specific number of examples to obtain, limit any
 select query to returning 5 results.
 
 Pay attention to use only the column names that you can see in the schema description. Pay attention
@@ -118,8 +120,8 @@ The following tables/views already exist:
 You have access to the following tools:
 {tools}
 
-List the relevant SQL queries you ran in your Final Answer. If you don't want to use any tools it's 
-okay to give your message as a Final Answer.
+List the relevant SQL queries you ran in your answer. If you don't want to use any tools it's 
+okay to give your message as an answer.
 
 Unless explicitly told to import data, do not import external data. Data required to answer the question should already available in a table. 
 
@@ -129,7 +131,11 @@ output a summary of your actions in your final answer, e.g., "Successfully creat
 Execute queries separately! One per action. When appropriate, use the WITH clause to modularize the query in order to make it more readable.
 Leave block comments before complex parts of the query, sub-queries, joins, filters, etc. to explain step by step why they are correct
 
-Let's go!
+Use the following format:
+
+{output_instructions}
+
+Begin! 
 
 Question: {input}
 {agent_scratchpad}
@@ -139,23 +145,44 @@ Question: {input}
 class CustomOutputParser(AgentOutputParser):
 
     def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
+
+        #data = json.loads(llm_output)
+        data = CustomLLMResponse.parse_raw(llm_output)
+
+
         # Check if agent should finish
-        if "Final Answer:" in llm_output:
+        if data.type == 'answer':
+            if data.result and data.result.queries:
+                queries = 'SQL Queries Used:\n' + '\n'.join(data.result.queries)
+            else:
+                queries = ""
+
+            final_answer = f"""{data.result.output}\n{queries}"""
+
             return AgentFinish(
-                # Return values is generally always a dictionary with a single `output` key
-                # It is not recommended to try anything else at the moment :)
-                return_values={"output": llm_output.split("Final Answer:")[-1].strip()},
+                return_values={'output': final_answer},
                 log=llm_output,
             )
+
         # Parse out the action and action input
-        regex = r"Action: (.*?)[\n]*Action Input:[\s]*(.*)"
-        match = re.search(regex, llm_output, re.DOTALL)
-        if not match:
-            raise ValueError(f"Could not parse LLM output: `{llm_output}`")
-        action = match.group(1).strip()
-        action_input = match.group(2)
+        action = data.type
+        action_input = data.input or ''
+
         # Return the action and action input
         return AgentAction(tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output)
+
+
+class CustomLLMResult(BaseModel):
+
+    output: str = Field(description="Answer to the initial question. Only required when type='answer'")
+    queries: Optional[List] = Field(description="SQL queries used")
+
+
+class CustomLLMResponse(BaseModel):
+    type: str = Field(description='the type of action to take, including "answer"')
+    input: Optional[str] = Field(description='Input to the action. Not required when type="answer"')
+    rational: str = Field(description="you should always think about what to do")
+    result: Optional[CustomLLMResult] = Field(description="The result of the action. Only required when type='answer'")
 
 
 class CustomPromptTemplate(BaseChatPromptTemplate):
@@ -180,10 +207,28 @@ class CustomPromptTemplate(BaseChatPromptTemplate):
         # Create a list of tool names for the tools provided
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
 
+
+
+        kwargs['output_instructions'] = textwrap.dedent("""
+            Your output should be a single valid JSON object with the following keys:
+            
+            {
+                "type": <the type of action to take, should be one of [{tool_names}] or "answer">,
+                "rational": "you should always think about what to do. Include your plan here.",
+                "input": <the input to the action. Not required when type="answer">,
+                "result": {
+                    "output": "Answer to the initial question. Only required when type='answer'. Markdown is supported.",
+                    "queries": ["SQL queries used"]
+                }
+            }
+            """)
+
         # TODO probably good to get the updated table names here
         # table_names =
         formatted = self.template.format(**kwargs)
-        return [HumanMessage(content=formatted)]
+        return [
+            HumanMessage(content=formatted)
+        ]
 
 
 # Other examples
