@@ -9,6 +9,8 @@ def run_sql_catch_error(conn, sql: str):
     sql = sql.split(";")[0]
 
     try:
+        if conn is None:
+            return "database connection not available"
 
         output = conn.sql(sql)
 
