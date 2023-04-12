@@ -48,7 +48,7 @@ class WikiDataQueryTool(BaseTool):
     
     Output is the raw response in json. If the query is not correct, an error message will be returned. 
     If an error is returned, you may rewrite the query and try again. If you are unsure about the response
-    you can try rewrite the query and try again.
+    you can try rewrite the query and try again. Prefer local data before using this tool.
     """
     base_url: str = 'https://query.wikidata.org/sparql'
     httpx_client: httpx.AsyncClient = None

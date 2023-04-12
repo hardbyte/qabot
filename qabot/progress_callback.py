@@ -36,7 +36,8 @@ class QACallback(OpenAICallbackHandler):
         self, action: AgentAction, color: Optional[str] = None, **kwargs
     ):
         """Run on agent requesting an action."""
-        print(f"[{color}]{action.log}[/{color}]")
+        pass
+        #print(f"[{color}]{action.log}[/{color}]")
 
     def on_chain_end(self, outputs, **kwargs):
         super().on_chain_end(outputs, **kwargs)

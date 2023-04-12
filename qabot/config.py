@@ -10,3 +10,4 @@ class Settings(BaseSettings):
     QABOT_CACHE_DATABASE_URI = "duckdb:///:memory:"
     QABOT_MODEL_NAME = "gpt-3.5-turbo"
     QABOT_TABLES: Optional[List[str]]
+    QABOT_ENABLE_WIKIDATA: bool = True
