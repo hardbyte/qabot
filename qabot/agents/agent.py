@@ -40,34 +40,37 @@ def create_agent_executor(
         verbose=verbose
     )
 
-    tools = [
-        # Tool(
-        #     name="Python",
-        #     func=python_chain.run,
-        #     description="Useful for when you need to run a quick simulation, or answer questions about math"
-        # ),
-        Tool(
-            name="Show Tables",
-            func=lambda _: run_sql_catch_error(database_engine, "show tables"),
-            description="Useful to show the locally available database tables and views. Empty input required."
-        ),
-        Tool(
-            name="Describe Table",
-            func=lambda table: describe_table_or_view(database_engine, table),
-            description="Useful to show the column names and types of a local database table or view. Use the table name as the input."
-        ),
-        Tool(
-            name="Data Op",
-            func=lambda query: db_chain({
-                'table_names': run_sql_catch_error(database_engine, "select table_name, table_schema from information_schema.tables;"),
-                'input': query
-            }),
-            description=textwrap.dedent("""Useful to interact with local data tables. 
-            Input should be a natural language question containing full context including what tables and columns are relevant to the question. 
-            Use only after data is present and loaded. Prefer to request small independent steps with this tool.
-            """,)
-        )
-    ]
+    tools = []
+    # Tool(
+    #     name="Python",
+    #     func=python_chain.run,
+    #     description="Useful for when you need to run a quick simulation, or answer questions about math"
+    # ),
+
+    if database_engine is not None:
+        tools.extend([
+            Tool(
+                name="Show Tables",
+                func=lambda _: run_sql_catch_error(database_engine, "show tables"),
+                description="Useful to show the locally available database tables and views. Empty input required."
+            ),
+            Tool(
+                name="Describe Table",
+                func=lambda table: describe_table_or_view(database_engine, table),
+                description="Useful to show the column names and types of a local database table or view. Use the table name as the input."
+            ),
+            Tool(
+                name="Data Op",
+                func=lambda query: db_chain({
+                    'table_names': run_sql_catch_error(database_engine, "select table_name, table_schema from information_schema.tables;"),
+                    'input': query
+                }),
+                description=textwrap.dedent("""Useful to interact with local data tables. 
+                Input should be a natural language question containing full context including what tables and columns are relevant to the question. 
+                Use only after data is present and loaded. Prefer to request small independent steps with this tool.
+                """,)
+            )
+        ])
 
     if allow_human_clarification:
         tools.append(HumanInputRun())
