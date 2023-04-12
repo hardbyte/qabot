@@ -78,7 +78,7 @@ def main(
         file: Optional[List[str]] = typer.Option(None, "-f", "--file", help="File or url containing data to query"),
         database_uri: Optional[str] = typer.Option(":memory:", "-d", "--database", help="DuckDB Database URI (e.g. '/tmp/qabot.duckdb')"),
         table: Optional[List[str]] = typer.Option(None, "--table", "-t", help="Limit queries to these tables (can be specified multiple times)"),
-        disable_cache: bool = typer.Option(False, "--disable-cache", help="Disable caching of LLM queries"),
+        disable_cache: bool = typer.Option(True, "--disable-cache", help="Disable caching of LLM queries"),
         enable_wikidata: bool = typer.Option(False, "-w", "--wikidata", help='Allow querying from wikidata'),
         verbose: bool = typer.Option(False, "-v", "--verbose", help='Essentially debug output'),
 ):

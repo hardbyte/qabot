@@ -3,18 +3,21 @@ import json
 import textwrap
 from typing import Optional, List
 
-from langchain import LLMChain
+import pydantic
+from langchain import LLMChain, OpenAI
 from langchain.agents import AgentExecutor, Tool
 from langchain.agents.chat.base import ChatAgent
 from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
-from langchain.output_parsers import PydanticOutputParser
+from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
 from langchain.prompts import BaseChatPromptTemplate
 from langchain import SerpAPIWrapper, LLMChain
 from langchain.chat_models import ChatOpenAI
 from typing import List, Union
-from langchain.schema import AgentAction, AgentFinish, HumanMessage
+from langchain.schema import AgentAction, AgentFinish, HumanMessage, OutputParserException, BaseOutputParser
 from langchain.tools import BaseTool
-from pydantic import Field, BaseModel
+from langchain.output_parsers import RetryWithErrorOutputParser
+
+from pydantic import Field, BaseModel, validator
 
 from qabot.tools.duckdb_execute_tool import DuckDBTool
 from qabot.duckdb_query import run_sql_catch_error
@@ -71,8 +74,11 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
     #     ]
     # )
 
-    output_parser = CustomOutputParser()
+    class AgentWrappedOutputFixingParser(OutputFixingParser, AgentOutputParser):
+        pass
 
+    output_parser = CustomOutputParser()
+    output_fixing_parser = AgentWrappedOutputFixingParser.from_llm(parser=output_parser, llm=ChatOpenAI())
 
     # LLM chain consisting of the LLM and a prompt
     llm_chain = LLMChain(llm=llm, prompt=prompt)
@@ -81,8 +87,8 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
 
     agent = LLMSingleActionAgent(
         llm_chain=llm_chain,
-        output_parser=output_parser,
-        stop=["\nObservation:"],
+        output_parser=output_fixing_parser,
+        stop=["\n\n"],
         allowed_tools=tool_names)
 
     agent_executor = AgentExecutor.from_agent_and_tools(
@@ -131,8 +137,6 @@ output a summary of your actions in your final answer, e.g., "Successfully creat
 Execute queries separately! One per action. When appropriate, use the WITH clause to modularize the query in order to make it more readable.
 Leave block comments before complex parts of the query, sub-queries, joins, filters, etc. to explain step by step why they are correct
 
-Use the following format:
-
 {output_instructions}
 
 Begin! 
@@ -141,19 +145,35 @@ Question: {input}
 {agent_scratchpad}
 """
 
+output_instructions = """
+Your output should be a single valid JSON object with the following keys:
+
+
+"type": the type of action to take, should be one of [{tool_names}] or "answer"
+"rational": Always think about what to do. Include your plan here.
+"input": The input to the action. Not required when type="answer".
+"result": The result of the action. Only allowed when type="answer". Should be an object with "output" and "query" keys. 
+  The "output" should be a string with the Answer to the initial question. Markdown is supported. "query" should be a single string containing the SQL query used to obtain the answer.
+
+
+Output a double newline after your JSON object. The output of the action will be provided.
+"""
+
 
 class CustomOutputParser(AgentOutputParser):
+    def get_format_instructions(self) -> str:
+        return output_instructions
 
     def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
-
-        #data = json.loads(llm_output)
-        data = CustomLLMResponse.parse_raw(llm_output)
-
+        try:
+            data = CustomLLMResponse.parse_raw(llm_output)
+        except pydantic.ValidationError as e:
+            raise OutputParserException from e
 
         # Check if agent should finish
         if data.type == 'answer':
-            if data.result and data.result.queries:
-                queries = 'SQL Queries Used:\n' + '\n'.join(data.result.queries)
+            if data.result and data.result.query:
+                queries = 'SQL Used:\n' + data.result.query
             else:
                 queries = ""
 
@@ -175,7 +195,10 @@ class CustomOutputParser(AgentOutputParser):
 class CustomLLMResult(BaseModel):
 
     output: str = Field(description="Answer to the initial question. Only required when type='answer'")
-    queries: Optional[List] = Field(description="SQL queries used")
+    query: Optional[str] = Field(description="SQL query used")
+
+
+#class ActionTypes(str, enum.Enum):
 
 
 class CustomLLMResponse(BaseModel):
@@ -184,6 +207,14 @@ class CustomLLMResponse(BaseModel):
     rational: str = Field(description="you should always think about what to do")
     result: Optional[CustomLLMResult] = Field(description="The result of the action. Only required when type='answer'")
 
+    @validator("result", always=True, pre=True)
+    def provide_result_only_on_answer(cls, value, values):
+        if value is None and values['type'] == "answer":
+            raise ValueError("result is required when type='answer'")
+        elif values['type'] != "answer" and value is not None:
+            raise ValueError("result is only allowed when type='answer'")
+        else:
+            return value
 
 class CustomPromptTemplate(BaseChatPromptTemplate):
     # The template to use
@@ -203,25 +234,12 @@ class CustomPromptTemplate(BaseChatPromptTemplate):
         # Set the agent_scratchpad variable to that value
         kwargs["agent_scratchpad"] = thoughts
         # Create a tools variable from the list of tools provided
-        kwargs["tools"] = "\n".join([f"{tool.name}: {tool.description}" for tool in self.tools])
+        kwargs["tools"] = "\n".join([f'"{tool.name}": {tool.description}' for tool in self.tools])
         # Create a list of tool names for the tools provided
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
 
 
-
-        kwargs['output_instructions'] = textwrap.dedent("""
-            Your output should be a single valid JSON object with the following keys:
-            
-            {
-                "type": <the type of action to take, should be one of [{tool_names}] or "answer">,
-                "rational": "you should always think about what to do. Include your plan here.",
-                "input": <the input to the action. Not required when type="answer">,
-                "result": {
-                    "output": "Answer to the initial question. Only required when type='answer'. Markdown is supported.",
-                    "queries": ["SQL queries used"]
-                }
-            }
-            """)
+        kwargs['output_instructions'] = output_instructions
 
         # TODO probably good to get the updated table names here
         # table_names =

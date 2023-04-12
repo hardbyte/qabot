@@ -64,7 +64,7 @@ def create_agent_executor(
         Tool(
             name="Data Op",
             func=lambda query: db_chain({
-                'table_names': run_sql_catch_error(database_engine, "show tables;"),
+                'table_names': run_sql_catch_error(database_engine, "select table_name, table_schema from information_schema.tables;"),
                 'input': query
             }),
             description=textwrap.dedent("""Useful to interact with local data tables. 
