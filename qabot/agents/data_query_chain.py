@@ -24,19 +24,6 @@ from qabot.duckdb_query import run_sql_catch_error
 from qabot.tools.describe_duckdb_table import describe_table_or_view
 
 
-#
-# class QueryAgentResponse(BaseModel):
-#     response: str = Field(
-#         description="The extracted query, clarification request, or a note explaining why the query is unrelated to the data."
-#     )
-#
-#     action: str = Field(
-#         description="The single action that should be taken. If the action is 'query', then the query field must not be empty."
-#     )
-#
-#
-# parser = PydanticOutputParser(pydantic_object=QueryAgentResponse)
-
 
 def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=False):
     tools = [
@@ -65,14 +52,6 @@ def get_duckdb_data_query_chain(llm, database, callback_manager=None, verbose=Fa
         # they are generated dynamically by the CustomPromptTemplate.
         input_variables=["input", "intermediate_steps", "table_names"]
     )
-
-    #llm = ChatOpenAI(temperature=0)
-    # llm_chain = SimpleSequentialChain(
-    #     chains=[
-    #         LLMChain(llm=llm, prompt=prompt),
-    #         LLMCheckerChain(llm=llm, verbose=True),
-    #     ]
-    # )
 
     class AgentWrappedOutputFixingParser(OutputFixingParser, AgentOutputParser):
         pass
@@ -198,9 +177,6 @@ class CustomLLMResult(BaseModel):
     query: Optional[str] = Field(description="SQL query used")
 
 
-#class ActionTypes(str, enum.Enum):
-
-
 class CustomLLMResponse(BaseModel):
     type: str = Field(description='the type of action to take, including "answer"')
     input: Optional[str] = Field(description='Input to the action. Not required when type="answer"')
@@ -215,6 +191,7 @@ class CustomLLMResponse(BaseModel):
             raise ValueError("result is only allowed when type='answer'")
         else:
             return value
+
 
 class CustomPromptTemplate(BaseChatPromptTemplate):
     # The template to use

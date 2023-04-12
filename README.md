@@ -1,35 +1,19 @@
 # qabot
 
 Query local or remote files with natural language queries powered by
-`langchain` and `gpt-3.5-turbo` and `duckdb` 🦆.
+`langchain` and `gpt` and `duckdb` 🦆.
 
-Will query Wikidata and local files.
+Can query Wikidata and local files.
 
 Usage:
 
 ```
 $ EXPORT OPENAI_API_KEY=sk-...
 $ EXPORT QABOT_MODEL_NAME=gpt-4
-$ qabot -q "How many Hospitals are there located in Beijing"
-Total tokens 1773 approximate cost in USD: 0.05634
-
-Result:
+$ qabot -w -q "How many Hospitals are there located in Beijing"
+Query: How many Hospitals are there located in Beijing
 There are 39 hospitals located in Beijing.
- 🚀 anything else I can help you with?: what are the star war films
-Query: what are the star war films
-Intermediate Steps: 
-  Step 1
-
-    wikidata
-      SELECT DISTINCT ?film ?filmLabel WHERE { ?film wdt:P31 wd:Q11424; wdt:P179 wd:Q22092344. SERVICE wikibase:label { bd:serviceParam wikibase:language '[AUTO_LANGAGE],en'. } } ORDER BY ?film
-
-Total tokens 4099 approximate cost in USD: 0.13305
-
-
-Result:
-The Star Wars films are: 1. Star Wars: Episode I – The Phantom Menace, 2. Star Wars: Episode II – Attack of the Clones, 3. Star Wars: Episode III – Revenge of the Sith, 4. Star Wars: Episode IV – A
-New Hope, 5. Star Wars: Episode V – The Empire Strikes Back, 6. Star Wars: Episode VI – Return of the Jedi, 7. Star Wars: Episode VII – The Force Awakens, 8. Star Wars: Episode VIII – The Last 
-Jedi, and 9. Star Wars Episode IX: The Rise of Skywalker.
+Total tokens 1749 approximate cost in USD: 0.05562
 ```
 
 
@@ -106,220 +90,21 @@ The largest family who did not survive was the Sage family, with 8 members.
 ```
 
 
+## Query WikiData
+
+Use the `-w` flag to query wikidata. For best results use the `gpt-4` model.
+```bash
+$ EXPORT QABOT_MODEL_NAME=gpt-4
+$ qabot -w -q "How many Hospitals are there located in Beijing"
+```
+
 ## Intermediate steps and database queries
 
 Use the `-v` flag to see the intermediate steps and database queries.
-
-Sometimes it takes a long route to get to the answer, but it's interesting to see how it gets there:
-
+Sometimes it takes a long route to get to the answer, but it's interesting to see how it gets there.
 
 ```
 qabot -f data/titanic.csv -q "how many passengers survived by gender?" -v
-🦆 Loading data from files...
-Query: how many passengers survived by gender?
-I need to check the columns in the 'titanic' table to see which ones contain gender and survival information.
-Action: Describe Table
-Action Input: titanic
-
-Observation: titanic
-
-┌─────────────┬─────────────┬─────────┬─────────┬─────────┬───────┐
-│ column_name │ column_type │  null   │   key   │ default │ extra │
-│   varchar   │   varchar   │ varchar │ varchar │ varchar │ int32 │
-├─────────────┼─────────────┼─────────┼─────────┼─────────┼───────┤
-│ PassengerId │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-│ Survived    │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-│ Pclass      │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-│ Name        │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-│ Sex         │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-│ Age         │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
-│ SibSp       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-│ Parch       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-│ Ticket      │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-│ Fare        │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
-│ Cabin       │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-│ Embarked    │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-├─────────────┴─────────────┴─────────┴─────────┴─────────┴───────┤
-│ 12 rows                                               6 columns │
-└─────────────────────────────────────────────────────────────────┘
-
-I need to create a view that only includes the columns I need for this question.
-Action: Data Op
-Action Input: 
-        CREATE VIEW titanic_gender_survival AS
-        SELECT Sex, Survived
-        FROM titanic
-Thought:
-
-> Entering new AgentExecutor chain...
-This is a valid SQL query creating a view. We can execute it directly.
-Action: execute
-Action Input: 
-        CREATE VIEW titanic_gender_survival AS
-        SELECT Sex, Survived
-        FROM titanic
-Observation: No output
-Thought:The view has been created successfully. We can now query it.
-Action: execute
-Action Input: SELECT * FROM titanic_gender_survival LIMIT 5
-Observation: 
-┌─────────┬──────────┐
-│   Sex   │ Survived │
-│ varchar │  int64   │
-├─────────┼──────────┤
-│ male    │        0 │
-│ female  │        1 │
-│ female  │        1 │
-│ female  │        1 │
-│ male    │        0 │
-└─────────┴──────────┘
-
-Thought:The view has been created successfully and we can see the first 5 rows of the view. The final answer is the first 5 rows of the titanic_gender_survival view, showing the sex and survival status of passengers on the 
-Titanic.
-Final Answer: 
-┌─────────┬──────────┐
-│   Sex   │ Survived │
-│ varchar │  int64   │
-├─────────┼──────────┤
-│ male    │        0 │
-│ female  │        1 │
-│ female  │        1 │
-│ female  │        1 │
-│ male    │        0 │
-└─────────┴──────────┘
-
-> Finished chain.
-
-Observation: ┌─────────┬──────────┐
-│   Sex   │ Survived │
-│ varchar │  int64   │
-├─────────┼──────────┤
-│ male    │        0 │
-│ female  │        1 │
-│ female  │        1 │
-│ female  │        1 │
-│ male    │        0 │
-└─────────┴──────────┘
-I need to group the data by gender and count the number of survivors for each group.
-Action: Data Op
-Action Input: 
-        SELECT Sex, SUM(Survived) AS num_survived
-        FROM titanic_gender_survival
-        GROUP BY Sex
-Thought:
-
-> Entering new AgentExecutor chain...
-We need to check if the table titanic_gender_survival exists and if it has the columns Sex and Survived.
-Action: Describe Table
-Action Input: titanic_gender_survival
-Observation: titanic_gender_survival
-
-┌─────────────┬─────────────┬─────────┬─────────┬─────────┬───────┐
-│ column_name │ column_type │  null   │   key   │ default │ extra │
-│   varchar   │   varchar   │ varchar │ varchar │ varchar │ int32 │
-├─────────────┼─────────────┼─────────┼─────────┼─────────┼───────┤
-│ Sex         │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-│ Survived    │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-└─────────────┴─────────────┴─────────┴─────────┴─────────┴───────┘
-
-Thought:The table titanic_gender_survival exists and has the columns Sex and Survived. We can now run the query.
-Action: execute
-Action Input: 
-```
-SELECT Sex, SUM(Survived) AS num_survived
-FROM titanic_gender_survival
-GROUP BY Sex
-LIMIT 5
-```
-
-Observation: 
-┌─────────┬──────────────┐
-│   Sex   │ num_survived │
-│ varchar │    int128    │
-├─────────┼──────────────┤
-│ male    │          109 │
-│ female  │          233 │
-└─────────┴──────────────┘
-
-Thought:The query returned the number of survivors grouped by gender. The table titanic_gender_survival has been used. 
-Final Answer: The number of survivors grouped by gender are: 
-- 109 males survived
-- 233 females survived.
-
-> Finished chain.
-
-Observation: The number of survivors grouped by gender are: 
-- 109 males survived
-- 233 females survived.
-Intermediate Steps: 
-  Step 1
-
-    Describe Table
-      titanic
-
-      titanic
-
-    ┌─────────────┬─────────────┬─────────┬─────────┬─────────┬───────┐
-    │ column_name │ column_type │  null   │   key   │ default │ extra │
-    │   varchar   │   varchar   │ varchar │ varchar │ varchar │ int32 │
-    ├─────────────┼─────────────┼─────────┼─────────┼─────────┼───────┤
-    │ PassengerId │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-    │ Survived    │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-    │ Pclass      │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-    │ Name        │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-    │ Sex         │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-    │ Age         │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
-    │ SibSp       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-    │ Parch       │ BIGINT      │ YES     │ NULL    │ NULL    │  NULL │
-    │ Ticket      │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-    │ Fare        │ DOUBLE      │ YES     │ NULL    │ NULL    │  NULL │
-    │ Cabin       │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-    │ Embarked    │ VARCHAR     │ YES     │ NULL    │ NULL    │  NULL │
-    ├─────────────┴─────────────┴─────────┴─────────┴─────────┴───────┤
-    │ 12 rows                                               6 columns │
-    └─────────────────────────────────────────────────────────────────┘
-
-    
-
-  Step 2
-
-    Data Op
-      CREATE VIEW titanic_gender_survival AS
-            SELECT Sex, Survived
-            FROM titanic
-
-      ┌─────────┬──────────┐
-    │   Sex   │ Survived │
-    │ varchar │  int64   │
-    ├─────────┼──────────┤
-    │ male    │        0 │
-    │ female  │        1 │
-    │ female  │        1 │
-    │ female  │        1 │
-    │ male    │        0 │
-    └─────────┴──────────┘
-
-    
-
-  Step 3
-
-    Data Op
-      SELECT Sex, SUM(Survived) AS num_survived
-            FROM titanic_gender_survival
-            GROUP BY Sex
-
-      The number of survivors grouped by gender are: 
-    - 109 males survived
-    - 233 females survived.
-
-    
-
-
-Thought:
-
-
-Result:
-109 males and 233 females survived.
 ```
 
 ## Data accessed via http/s3
@@ -343,11 +128,8 @@ Result:
 - [Typescript library](https://hwchase17.github.io/langchainjs/docs/overview/)
 
 
-
 ## Ideas
 
-- Upgrade to use langchain chat interface
-- Use memory, perhaps wait for langchain's next release
 - Decent Python Library API so can be used from other Python code
 - streaming mode to output results as they come in
 - token limits
@@ -357,9 +139,5 @@ Result:
 - Generate and pass back assumptions made to the user
 - Add an optional "clarify" tool to the chain that asks the user to clarify the question
 - Create a query checker tool that checks if the query looks valid and/or safe
-- Perhaps an explain query tool that shows the steps taken to get the answer
-- Store all queries, actions, and answers in a table
-- Optional settings to switch to different LLM
 - Inject AWS credentials into duckdb so we can access private resources in S3
-- caching
-- A version that uses document embeddings - probably not in this app as needs Torch
+- Better caching
