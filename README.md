@@ -75,11 +75,7 @@ Install the `qabot` command line tool using pip/poetry:
 $ pip install qabot
 ```
 
-Then run the `qabot` command with either local files (`-f my-file.csv`) or a database connection string.
-
-Note if you want to use a database, you will need to install the relevant drivers, 
-e.g. `pip install psycopg2-binary` for postgres.
-
+Then run the `qabot` command with either local files (`-f my-file.csv`) or `-w` to query wikidata.
 
 
 ## Examples
