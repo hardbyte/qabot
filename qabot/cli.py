@@ -130,6 +130,7 @@ def main(
             verbose=False,
             model_name=settings.QABOT_MODEL_NAME,
             allow_wikidata=settings.QABOT_ENABLE_WIKIDATA and enable_wikidata,
+            allow_human_clarification=settings.QABOT_ENABLE_HUMAN_CLARIFICATION,
         )
 
         progress.remove_task(t2)

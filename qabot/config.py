@@ -11,3 +11,4 @@ class Settings(BaseSettings):
     QABOT_MODEL_NAME = "gpt-3.5-turbo"
     QABOT_TABLES: Optional[List[str]]
     QABOT_ENABLE_WIKIDATA: bool = True
+    QABOT_ENABLE_HUMAN_CLARIFICATION: bool = False

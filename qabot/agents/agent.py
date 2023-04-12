@@ -21,6 +21,7 @@ def create_agent_executor(
         callback_manager=None,
         verbose=False,
         model_name='gpt-3.5-turbo',
+        allow_human_clarification=False,
         allow_wikidata=True,
 ):
 
@@ -65,9 +66,11 @@ def create_agent_executor(
             Input should be a natural language question containing full context including what tables and columns are relevant to the question. 
             Use only after data is present and loaded. Prefer to request small independent steps with this tool.
             """,)
-        ),
-        HumanInputRun(),
+        )
     ]
+
+    if allow_human_clarification:
+        tools.append(HumanInputRun())
 
     if allow_wikidata:
         tools.append(WikiDataQueryTool())

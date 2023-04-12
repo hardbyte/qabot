@@ -125,17 +125,19 @@ Question: {input}
 """
 
 output_instructions = """
-Your output should be a single valid JSON object with the following keys:
+Your output must be a valid JSON object with the following keys:
 
-
-"type": the type of action to take, should be one of [{tool_names}] or "answer"
+{
+"type": the type of action to take, should be one of [{tool_names}] or "answer".
 "rational": Always think about what to do. Include your plan here.
 "input": The input to the action. Not required when type="answer".
-"result": The result of the action. Only allowed when type="answer". Should be an object with "output" and "query" keys. 
+"result": The final answer to the question when type="answer". Only allowed when type="answer". Should be an object with "output" and "query" keys. 
   The "output" should be a string with the Answer to the initial question. Markdown is supported. "query" should be a single string containing the SQL query used to obtain the answer.
+}
 
+Output 3 new lines after the JSON object.
 
-Output a double newline after your JSON object. The output of the action will be provided.
+Remember you must execute a query before providing an answer. The output of previous actions will be provided to you, only "answer" after querying the data.
 """
 
 
@@ -147,6 +149,7 @@ class CustomOutputParser(AgentOutputParser):
         try:
             data = CustomLLMResponse.parse_raw(llm_output)
         except pydantic.ValidationError as e:
+            print("format error", e)
             raise OutputParserException from e
 
         # Check if agent should finish
@@ -203,7 +206,10 @@ class CustomPromptTemplate(BaseChatPromptTemplate):
         # Get the intermediate steps (AgentAction, Observation tuples)
         # Format them in a particular way
         intermediate_steps = kwargs.pop("intermediate_steps")
-        thoughts = ""
+        if len(intermediate_steps) == 0:
+            thoughts = "Thought: I should execute a query before giving my answer\n"
+        else:
+            thoughts = ""
         for action, observation in intermediate_steps:
             thoughts += action.log
             thoughts += f"\nObservation: {observation}\nThought: "
@@ -214,7 +220,6 @@ class CustomPromptTemplate(BaseChatPromptTemplate):
         kwargs["tools"] = "\n".join([f'"{tool.name}": {tool.description}' for tool in self.tools])
         # Create a list of tool names for the tools provided
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
-
 
         kwargs['output_instructions'] = output_instructions
 
