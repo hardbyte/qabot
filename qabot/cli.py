@@ -77,7 +77,6 @@ def main(
         query: str = typer.Option("Describe the tables", '-q', '--query', prompt=INITIAL_NON_INTERACTIVE_PROMPT),
         file: Optional[List[str]] = typer.Option(None, "-f", "--file", help="File or url containing data to query"),
         database_uri: Optional[str] = typer.Option(":memory:", "-d", "--database", help="DuckDB Database URI (e.g. '/tmp/qabot.duckdb')"),
-        table: Optional[List[str]] = typer.Option(None, "--table", "-t", help="Limit queries to these tables (can be specified multiple times)"),
         disable_cache: bool = typer.Option(True, "--disable-cache", help="Disable caching of LLM queries"),
         enable_wikidata: bool = typer.Option(False, "-w", "--wikidata", help='Allow querying from wikidata'),
         verbose: bool = typer.Option(False, "-v", "--verbose", help='Essentially debug output'),
@@ -116,7 +115,6 @@ def main(
         callback_manager.add_handler(openai_callback)
         callback_manager.add_handler(output_callback)
 
-
         if not disable_cache:
             t = progress.add_task(description="Setting up cache...", total=None)
             configure_caching(database_engine)
@@ -127,7 +125,6 @@ def main(
         agent = create_agent_executor(
             #database_uri=database_uri or settings.QABOT_DATABASE_URI,
             database_engine=database_engine,
-            tables=table,
             return_intermediate_steps=True,
             callback_manager=callback_manager,
             verbose=False,
@@ -178,7 +175,7 @@ def main(
             print()
             query = Prompt.ask(FOLLOW_UP_PROMPT)
 
-            if query == "exit" and Confirm.ask("Are you sure you want to Quit?"):
+            if query.lower() in {'q', 'exit', 'quit'} and Confirm.ask("Are you sure you want to Quit?"):
                 break
 
             progress.start()

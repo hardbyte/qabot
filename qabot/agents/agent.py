@@ -17,7 +17,6 @@ from qabot.tools.wikidata import WikiDataQueryTool
 
 def create_agent_executor(
         database_engine=None,
-        tables=None,
         return_intermediate_steps=False,
         callback_manager=None,
         verbose=False,
@@ -45,11 +44,6 @@ def create_agent_executor(
         #     name="Python",
         #     func=python_chain.run,
         #     description="Useful for when you need to run a quick simulation, or answer questions about math"
-        # ),
-        # Tool(
-        #     name="DuckDB QA System",
-        #     func=duckdb_docs_qa_chain.run,
-        #     description="useful for when you need to answer questions about duckdb. Input should be a fully formed question."
         # ),
         Tool(
             name="Show Tables",

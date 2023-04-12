@@ -5,9 +5,9 @@ Query local or remote files with natural language queries powered by
 
 Can query Wikidata and local files.
 
-Usage:
+## Command Line Usage
 
-```
+```bash
 $ EXPORT OPENAI_API_KEY=sk-...
 $ EXPORT QABOT_MODEL_NAME=gpt-4
 $ qabot -w -q "How many Hospitals are there located in Beijing"
@@ -16,6 +16,23 @@ There are 39 hospitals located in Beijing.
 Total tokens 1749 approximate cost in USD: 0.05562
 ```
 
+## Python Usage
+
+```python
+from qabot import ask_wikidata, ask_file
+
+print(ask_wikidata("How many hospitals are there in New Zealand?"))
+print(ask_file("How many men were aboard the titanic?", 'data/titanic.csv'))
+```
+
+Output:
+```text
+There are 54 hospitals in New Zealand.
+There were 577 male passengers on the Titanic.
+```
+
+
+## Features
 
 Works on local CSV files:
 
