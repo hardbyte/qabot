@@ -143,7 +143,6 @@ Result:
 
 ## Ideas
 
-- Decent Python Library API so can be used from other Python code
 - streaming mode to output results as they come in
 - token limits
 - Supervisor agent - assess whether a query is "safe" to run, could ask for user confirmation to run anything that gets flagged.
