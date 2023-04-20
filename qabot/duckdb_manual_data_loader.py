@@ -25,7 +25,13 @@ def create_duckdb(duckdb_path: str = ':memory:') -> duckdb.DuckDBPyConnection:
         duckdb_connection.sql("INSTALL httpfs;")
         duckdb_connection.sql("LOAD httpfs;")
     except Exception:
-        print("Failed to install httpfs extension. Only loading from local files will be supported")
+        print("Failed to install httpfs extension. Loading remote files will not be supported")
+
+    try:
+        duckdb_connection.sql("INSTALL postgres_scanner;")
+        duckdb_connection.sql("LOAD postgres_scanner;")
+    except Exception:
+        print("Failed to install postgres_scanner extension. Loading directly from postgresql will not be supported")
 
     duckdb_connection.sql("create table if not exists qabot_queries(query VARCHAR, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
 
@@ -37,19 +43,10 @@ def import_into_duckdb_from_files(duckdb_connection: duckdb.DuckDBPyConnection, 
     executed_sql = []
     for i, file_path in enumerate(files, 1):
 
-        executed_sql.append(load_external_data_into_db(duckdb_connection, file_path))
-
-        # Alternative is to allow user to pass in column types:
-        # conn.sql(f"""
-        # create table {table_name} as (
-        #     select * from read_csv_auto(
-        #         '%s',
-        #         delim='|',
-        #         header=True,
-        #         --types={'phone': 'VARCHAR'}
-        #     )
-        # )
-        # """ % file_path)
+        if file_path.startswith("postgresql://"):
+            duckdb_connection.execute(f"CALL postgres_attach('{file_path}')")
+        else:
+            executed_sql.append(load_external_data_into_db(duckdb_connection, file_path))
 
     return duckdb_connection, executed_sql
 

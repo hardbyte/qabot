@@ -96,7 +96,7 @@ def main(
     if len(file) > 0:
         if isinstance(file, str):
             file = [file]
-        print("[red]🦆[/red] [bold]Loading data from files...[/bold]")
+        print("[red]🦆[/red] [bold]Loading data...[/bold]")
         database_engine, executed_sql = import_into_duckdb_from_files(database_engine, file)
         executed_sql = '\n'.join(executed_sql)
     else:
