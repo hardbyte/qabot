@@ -153,3 +153,16 @@ Result:
 - Create a query checker tool that checks if the query looks valid and/or safe
 - Inject AWS credentials into duckdb so we can access private resources in S3
 - Better caching
+## Running Tests
+
+To run the integration tests, you need to have pytest installed. Install it using pip:
+
+```bash
+$ pip install pytest
+```
+
+After installing pytest, run the tests by navigating to the project's root directory and executing the following command:
+
+```bash
+$ pytest
+```
