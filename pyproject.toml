@@ -13,7 +13,7 @@ qabot = "qabot.cli:run"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-langchain = "^0.0.149"
+langchain = ">=0.0.149,<0.0.247"
 openai = "^0.27.4"
 duckdb = "^0.7.1"
 typer = "^0.7.0"
