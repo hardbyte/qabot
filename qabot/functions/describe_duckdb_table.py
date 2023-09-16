@@ -1,4 +1,4 @@
-from qabot.duckdb_query import run_sql_catch_error
+from qabot.functions.duckdb_query import run_sql_catch_error
 
 
 def describe_table_or_view(database, table):
