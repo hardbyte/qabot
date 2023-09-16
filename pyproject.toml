@@ -20,7 +20,7 @@ rich = "^13.3.3"
 httpx = "^0.25.0"
 tenacity = "^8.2.3"
 setuptools = "^68.2.2"
-
+pydantic = "^2.3.0"
 
 [build-system]
 requires = ["poetry-core"]
