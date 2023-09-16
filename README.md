@@ -1,7 +1,7 @@
 # qabot
 
 Query local or remote files with natural language queries powered by
-`langchain` and `gpt` and `duckdb` 🦆.
+OpenAI's `gpt` and `duckdb` 🦆.
 
 Can query Wikidata and local files.
 
@@ -133,12 +133,6 @@ Result:
 264308334 confirmed cases
 ```
 
-## Links
-
-- [Python library docs](https://langchain.readthedocs.io)
-- [Agent docs to talk to arbitrary apis via OpenAPI/Swagger](https://langchain.readthedocs.io/en/latest/modules/agents/agent_toolkits/openapi.html)
-- [Agents/Tools to talk SQL](https://langchain.readthedocs.io/en/latest/modules/agents/agent_toolkits/sql_database.html)
-- [Typescript library](https://hwchase17.github.io/langchainjs/docs/overview/)
 
 
 ## Ideas
@@ -152,4 +146,5 @@ Result:
 - Add an optional "clarify" tool to the chain that asks the user to clarify the question
 - Create a query checker tool that checks if the query looks valid and/or safe
 - Inject AWS credentials into duckdb so we can access private resources in S3
-- 
+
+- Automatic publishing to pypi. Look at https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/
