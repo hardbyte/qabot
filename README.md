@@ -152,4 +152,4 @@ Result:
 - Add an optional "clarify" tool to the chain that asks the user to clarify the question
 - Create a query checker tool that checks if the query looks valid and/or safe
 - Inject AWS credentials into duckdb so we can access private resources in S3
-- Better caching
+- 

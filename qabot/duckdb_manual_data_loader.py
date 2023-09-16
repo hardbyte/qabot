@@ -27,11 +27,6 @@ def create_duckdb(duckdb_path: str = ':memory:') -> duckdb.DuckDBPyConnection:
     except Exception:
         print("Failed to install httpfs extension. Loading remote files will not be supported")
 
-    try:
-        duckdb_connection.sql("INSTALL postgres_scanner;")
-        duckdb_connection.sql("LOAD postgres_scanner;")
-    except Exception:
-        print("Failed to install postgres_scanner extension. Loading directly from postgresql will not be supported")
 
     duckdb_connection.sql("create table if not exists qabot_queries(query VARCHAR, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP);")
 
@@ -44,7 +39,21 @@ def import_into_duckdb_from_files(duckdb_connection: duckdb.DuckDBPyConnection, 
     for i, file_path in enumerate(files, 1):
 
         if file_path.startswith("postgresql://"):
+            try:
+                duckdb_connection.sql("INSTALL postgres_scanner;")
+                duckdb_connection.sql("LOAD postgres_scanner;")
+            except Exception:
+                print("Failed to install postgres_scanner extension. Loading directly from postgresql will not be supported")
+                continue
             duckdb_connection.execute(f"CALL postgres_attach('{file_path}')")
+        elif file_path.endswith(".sqlite"):
+            try:
+                duckdb_connection.sql("INSTALL sqlite;")
+                duckdb_connection.sql("LOAD sqlite;")
+            except Exception:
+                print("Failed to install sqlite extension. Loading directly from sqlite will not be supported")
+                continue
+            duckdb_connection.execute(f"CALL sqlite_attach('{file_path}')")
         else:
             executed_sql.append(load_external_data_into_db(duckdb_connection, file_path))
 
