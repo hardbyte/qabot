@@ -194,8 +194,9 @@ class Agent:
                 functions=self.function_specifications,
                 model=self.model_name
             )
-            print("Raw output")
-            print(chat_response)
+
+            #print("Raw output")
+            #print(chat_response)
 
             message = chat_response.choices[0]['message']
             self.messages.append(message)
