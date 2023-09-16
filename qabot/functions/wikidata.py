@@ -1,10 +1,8 @@
 from typing import Optional
-
 import httpx
-from langchain.tools import BaseTool
 
 
-class WikiDataQueryTool(BaseTool):
+class WikiDataQueryTool:
     """
     For example to select the largest cities in the world that have a female mayor, you can use the following query:
 
@@ -59,10 +57,10 @@ class WikiDataQueryTool(BaseTool):
 
     def _run(self, query: str) -> str:
         r = httpx.get(self.base_url, params={'format': 'json', 'query': query}, timeout=60)
-        data = r.json()
+        data = r.text   # no point parsing the json
         return data
 
     async def _arun(self, query: str) -> str:
         r = await self.httpx_client.get(self.base_url, params={'format': 'json', 'query': query}, timeout=60)
-        data = r.json()
+        data = r.text
         return data

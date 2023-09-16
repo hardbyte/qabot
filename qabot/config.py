@@ -11,4 +11,4 @@ class Settings(BaseSettings):
     QABOT_MODEL_NAME = "gpt-4"
     QABOT_TABLES: Optional[List[str]]
     QABOT_ENABLE_WIKIDATA: bool = True
-    QABOT_ENABLE_HUMAN_CLARIFICATION: bool = False
+    QABOT_ENABLE_HUMAN_CLARIFICATION: bool = True
