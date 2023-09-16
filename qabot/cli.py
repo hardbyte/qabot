@@ -60,15 +60,13 @@ def main(
         transient=False,
     ) as progress:
 
-
         t2 = progress.add_task(description="Creating LLM agent", total=None)
 
         def clarification(clarification):
-            print("[bold yellow]Clarification required:[/]\n[bold yellow]")
-            return input(clarification)
+            progress.stop()
+            return Prompt.ask(f"[bold red]Clarification requested:[/]\n[bold yellow]{clarification}")
 
         agent = Agent(
-            #database_uri=database_uri or settings.QABOT_DATABASE_URI,
             database_engine=database_engine,
             verbose=False,
             model_name=settings.QABOT_MODEL_NAME,
