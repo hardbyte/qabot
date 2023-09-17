@@ -1,7 +1,8 @@
 from typing import Optional
 
+from qabot.config import Settings
 from qabot.agent import Agent
-from qabot.duckdb_manual_data_loader import create_duckdb, import_into_duckdb_from_files
+from qabot.functions.data_loader import create_duckdb, import_into_duckdb_from_files
 
 
 def ask_wikidata(query: str, verbose=False):

@@ -4,12 +4,14 @@ from typing import Callable
 
 from rich import print
 
-
+from qabot.formatting import format_rocket, format_robot, ROBOT_COLOR, format_duck, format_user
+from qabot.functions.data_loader import import_into_duckdb_from_files
 from qabot.functions.describe_duckdb_table import describe_table_or_view
 from qabot.functions.duckdb_query import run_sql_catch_error
 from qabot.functions.wikidata import WikiDataQueryTool
 from qabot.llm import chat_completion_request
 from qabot.prompts.system import system_prompt
+
 
 
 class Agent:
@@ -31,12 +33,15 @@ class Agent:
         self.model_name = model_name
         self.db = database_engine
         self.verbose = verbose
+        if verbose:
+            print(format_robot(f"Using model: {model_name}"))
         self.functions = {
             "clarify": clarification_callback,
             "wikidata": lambda query: WikiDataQueryTool()._run(query),
             "execute_sql": lambda query: run_sql_catch_error(database_engine, query),
             "show_tables": lambda: run_sql_catch_error(database_engine, "show tables"),
             "describe_table": lambda table: describe_table_or_view(database_engine, table),
+            "load_data": lambda files: "Imported with SQL:\n" + str(import_into_duckdb_from_files(database_engine, files)[1])
         }
         self.function_specifications = [
             {
@@ -73,6 +78,27 @@ class Agent:
                         },
                     },
                     "required": ["table"],
+                },
+            },
+            {
+                "name": "load_data",
+                "description": "Load data from one or more local or remote files into the local DuckDB database",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "files": {
+                            "type": "array",
+                            "description": "File path or urls",
+                            "items": {
+                                "type": "string",
+                                "examples": [
+                                    "data/chinook.sqlite",
+                                    "https://duckdb.org/data/prices.csv",
+                                ],
+                            }
+                        },
+                    },
+                    "required": ["file"],
                 },
             },
             # A special function to call to summarize the answer
@@ -149,20 +175,16 @@ class Agent:
                 }
             )
 
-        messages = []
-
-        messages.append({"role": "system",
-                         "content": system_prompt})
-        # messages.append({"role": "user", "content": user_prompt})
-
-        # Let's force the assistant to get the current tables
-        messages.append(
+        messages = [
+            {"role": "system", "content": system_prompt},
+            # Force the assistant to get the current tables
             {
                 'role': 'assistant',
                 'content': None,
                 'function_call': {'name': 'show_tables', 'arguments': '{}'}
             }
-        )
+        ]
+
         messages.append(
             {
                 "role": "function",
@@ -203,8 +225,8 @@ class Agent:
             if 'function_call' in message:
                 function_name = message["function_call"]["name"]
 
-                results = execute_function_call(message, self.functions)
-                print(f"[pink]{results}[/pink]")
+                results = execute_function_call(message, self.functions, self.verbose)
+
                 if function_name == 'answer':
                     return results
 
@@ -217,19 +239,36 @@ class Agent:
                             "content": results
                         })
 
+                if self.verbose:
+                    format_response = format_user if function_name == 'clarification' else format_duck
+                    print(format_response(results))
+
+            if message['content'] is not None and self.verbose:
+                print(format_robot(message['content']))
+
 
 def create_agent_executor(**kwargs):
     return Agent(**kwargs)
 
 
-def execute_function_call(message, functions):
+def execute_function_call(message, functions, verbose=False):
     function_name = message["function_call"]["name"]
-    kwargs = json.loads(message["function_call"]["arguments"])
+    try:
+        kwargs = json.loads(message["function_call"]["arguments"])
+    except json.decoder.JSONDecodeError:
+        return f"Error: function arguments were not valid JSON"
+
     if function_name in functions:
         f = functions[function_name]
+        if verbose:
+            if kwargs:
+                print(format_robot(function_name), kwargs)
+            else:
+                print(format_robot(function_name))
         results = f(**kwargs)
     elif function_name == 'answer':
         return kwargs
     else:
         results = f"Error: function {message['function_call']['name']} does not exist"
+
     return results
