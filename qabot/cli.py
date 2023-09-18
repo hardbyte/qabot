@@ -94,6 +94,8 @@ def main(
                 # Likely the users query was quite a ways back in the console history
                 print(format_rocket("Question:"))
                 print(format_user(query))
+
+
             print(format_robot(result['summary']))
             print()
             print(f"[{ROBOT_COLOR}]\n{result['detail']}\n")

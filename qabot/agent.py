@@ -25,16 +25,18 @@ class Agent:
                  model_name: str = 'gpt-3.5-turbo',
                  allow_wikidata: bool = False,
                  clarification_callback: Callable[[str], str] | None = None,
-                 verbose=False):
+                 verbose=False,
+                 max_iterations: int = 20
+                 ):
         """
         Create a new Agent.
         """
-
+        self.max_iterations = max_iterations
         self.model_name = model_name
         self.db = database_engine
         self.verbose = verbose
         if verbose:
-            print(format_robot(f"Using model: {model_name}"))
+            print(format_robot(f"Using model: {model_name}. Max LLM/function iterations before answer {max_iterations}"))
         self.functions = {
             "clarify": clarification_callback,
             "wikidata": lambda query: WikiDataQueryTool()._run(query),
@@ -210,41 +212,59 @@ class Agent:
                 "content": user_input
             })
 
-        for _ in range(50):
-            chat_response = chat_completion_request(
-                self.messages,
-                functions=self.function_specifications,
-                model=self.model_name
-            )
+        for _ in range(self.max_iterations):
 
-            #print("Raw output")
-            #print(chat_response)
+            is_final_answer, results = self.llm_step()
 
-            message = chat_response.choices[0]['message']
-            self.messages.append(message)
-            if 'function_call' in message:
-                function_name = message["function_call"]["name"]
+            if is_final_answer:
+                return results
 
-                results = execute_function_call(message, self.functions, self.verbose)
+        # If we get here, we've hit the max number of iterations
+        # Let's ask the LLM to summarize the errors/answer as best it can
+        self.messages.extend([
+            {
+                'role': 'system',
+                'content': 'Maximum iterations reached. Summarize what you were doing and attempt to answer the users question',
+            }
+        ])
 
-                if function_name == 'answer':
-                    return results
+        _, result = self.llm_step(forced_function_call={'name': 'answer'})
+        return result
 
-                else:
-                    # Inject a response message for the function call
-                    self.messages.append(
-                        {
-                            "role": "function",
-                            "name": message['function_call']['name'],
-                            "content": results
-                        })
+    def llm_step(self, forced_function_call=None):
+        is_final_answer = False
+        function_call_results = None
 
-                if self.verbose:
-                    format_response = format_user if function_name == 'clarification' else format_duck
-                    print(format_response(results))
+        chat_response = chat_completion_request(
+            self.messages,
+            functions=self.function_specifications,
+            model=self.model_name,
+            function_call=forced_function_call
+        )
+        message = chat_response.choices[0]['message']
+        self.messages.append(message)
+        if 'function_call' in message:
+            function_name = message["function_call"]["name"]
 
-            if message['content'] is not None and self.verbose:
-                print(format_robot(message['content']))
+            function_call_results = execute_function_call(message, self.functions, self.verbose)
+
+            if function_name == 'answer':
+                is_final_answer = True
+            else:
+                # Inject a response message for the function call
+                self.messages.append(
+                    {
+                        "role": "function",
+                        "name": message['function_call']['name'],
+                        "content": function_call_results
+                    })
+
+            if self.verbose:
+                format_response = format_user if function_name == 'clarification' else format_duck
+                print(format_response(function_call_results))
+        if message['content'] is not None and self.verbose:
+            print(format_robot(message['content']))
+        return is_final_answer, function_call_results
 
 
 def create_agent_executor(**kwargs):

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     QABOT_DATABASE_URI: Optional[str] = None
     QABOT_CACHE_DATABASE_URI: AnyUrl = "duckdb:///:memory:"
-    QABOT_MODEL_NAME: str = "gpt-4"
+    QABOT_MODEL_NAME: str = "gpt-3.5-turbo"
     QABOT_TABLES: Optional[List[str]] = None
     QABOT_ENABLE_WIKIDATA: bool = True
     QABOT_ENABLE_HUMAN_CLARIFICATION: bool = True

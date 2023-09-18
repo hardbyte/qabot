@@ -41,27 +41,111 @@ Works on local CSV files:
 remote CSV files:
 
 ```
-$ qabot \
-    -f https://www.stats.govt.nz/assets/Uploads/Environmental-economic-accounts/Environmental-economic-accounts-data-to-2020/renewable-energy-stock-account-2007-2020-csv.csv \
-    -q "How many Gigawatt hours of generation was there for Solar resources in 2015 through to 2020?"
-```
+$ qabot -f https://duckdb.org/data/holdings.csv -q "Tell me how many Apple holdings I currently have"
+ 🦆 Creating local DuckDB database...
+ 🦆 Loading data...
+create view 'holdings' as select * from 'https://duckdb.org/data/holdings.csv';
+ 🚀 Sending query to LLM
+ 🧑 Tell me how many Apple holdings I currently have
 
+
+ 🤖 You currently have 32.23 shares of Apple.
+
+
+This information was obtained by summing up all the Apple ('APPL') shares in the holdings table.
+
+SELECT SUM(shares) as total_shares FROM holdings WHERE ticker = 'APPL'
+```
 
 Even on (public) data stored in S3:
 
 ![](.github/external_s3_data.png)
 
-You can even load data from disk via the natural language query, but that doesn't always work...
+You can even load data from disk/URL via the natural language query:
 
 
-> "Load the file 'data/titanic_survival.parquet' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?"
+```
+qabot -q "Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?" -v
+ 🦆 Creating local DuckDB database...
+ 🤖 Using model: gpt-3.5-turbo. Max LLM/function iterations before answer 20
+ 🚀 Sending query to LLM
+ 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?
+ 🤖 load_data
+{'files': ['data/titanic.csv']}
+ 🦆 Imported with SQL:
+["create table 'titanic' as select * from 'data/titanic.csv';"]
+ 🤖 show_tables
+ 🦆 name
+qabot_queries
+titanic
+ 🤖 describe_table
+{'table': 'titanic'}
+ 🦆 titanic
+column_name,data_type
+PassengerId,BIGINT
+Survived,BIGINT
+Pclass,BIGINT
+Name,VARCHAR
+Sex,VARCHAR
+Age,DOUBLE
+SibSp,BIGINT
+Parch,BIGINT
+Ticket,VARCHAR
+Fare,DOUBLE
+Cabin,VARCHAR
+Embarked,VARCHAR
+select count(*) from 'titanic';
+count_star()
+891
+select * from 'titanic' limit 3;
+PassengerId,Survived,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked
+1,0,3,Braund, Mr. Owen Harris,male,22.0,1,0,A/5 21171,7.25,None,S
+2,1,1,Cumings, Mrs. John Bradley (Florence Briggs Thayer),female,38.0,1,0,PC 17599,71.2833,C85,C
+3,1,3,Heikkinen, Miss. Laina,female,26.0,0,0,STON/O2. 3101282,7.925,None,S
+ 🤖 execute_sql
+{'query': "CREATE VIEW male_passengers AS SELECT * FROM titanic WHERE Sex = 'male'"}
+ 🦆 No output
+ 🤖 describe_table
+{'table': 'male_passengers'}
+ 🦆 male_passengers
+column_name,data_type
+PassengerId,BIGINT
+Survived,BIGINT
+Pclass,BIGINT
+Name,VARCHAR
+Sex,VARCHAR
+Age,DOUBLE
+SibSp,BIGINT
+Parch,BIGINT
+Ticket,VARCHAR
+Fare,DOUBLE
+Cabin,VARCHAR
+Embarked,VARCHAR
+select count(*) from 'male_passengers';
+count_star()
+577
+select * from 'male_passengers' limit 3;
+PassengerId,Survived,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked
+1,0,3,Braund, Mr. Owen Harris,male,22.0,1,0,A/5 21171,7.25,None,S
+5,0,3,Allen, Mr. William Henry,male,35.0,0,0,373450,8.05,None,S
+6,0,3,Moran, Mr. James,male,None,0,0,330877,8.4583,None,Q
+ 🤖 execute_sql
+{'query': 'SELECT AVG(Fare) AS average_fare FROM male_passengers WHERE Survived = 1'}
+ 🦆 average_fare
+40.82148440366974
+ 🦆 {'summary': 'The average fare for surviving male passengers was $40.82.', 'detail': "To calculate the average fare for surviving male passengers, I created a view called 'male_passengers' that contains only the male passengers from the 'titanic' 
+table. Then, I executed the SQL query `SELECT AVG(Fare) AS average_fare FROM male_passengers WHERE Survived = 1` to calculate the average fare for the surviving male passengers."}
 
 
-After a bit of back and forth with the model, it gets there:
+ 🚀 Question:
+ 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?
+ 🤖 The average fare for surviving male passengers was $40.82.
 
-> The average fare for surviving male passengers from the 'male_passengers' view where the passenger survived is 40.82. I ran the query: SELECT AVG(Fare) FROM male_passengers WHERE Survived = 1 AND Sex = 'male';
-The average fare for surviving male passengers is 40.82.
 
+To calculate the average fare for surviving male passengers, I created a view called 'male_passengers' that contains only the male passengers from the 'titanic' table. Then, I executed the SQL query `SELECT AVG(Fare) AS average_fare FROM 
+male_passengers WHERE Survived = 1` to calculate the average fare for the surviving male passengers.
+
+```
 
 ## Quickstart
 
@@ -72,7 +156,7 @@ Install the `qabot` command line tool using pip/poetry:
 
 
 ```bash
-$ pip install qabot
+$ pip install -U qabot
 ```
 
 Then run the `qabot` command with either local files (`-f my-file.csv`) or `-w` to query wikidata.
