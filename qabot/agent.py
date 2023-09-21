@@ -214,10 +214,10 @@ class Agent:
 
         for _ in range(self.max_iterations):
 
-            is_final_answer, results = self.llm_step()
+            is_final_answer, result = self.llm_step()
 
             if is_final_answer:
-                return results
+                return result
 
         # If we get here, we've hit the max number of iterations
         # Let's ask the LLM to summarize the errors/answer as best it can
@@ -289,6 +289,6 @@ def execute_function_call(message, functions, verbose=False):
     elif function_name == 'answer':
         return kwargs
     else:
-        results = f"Error: function {message['function_call']['name']} does not exist"
+        return f"Error: function {message['function_call']['name']} does not exist"
 
     return results

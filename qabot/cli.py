@@ -98,7 +98,8 @@ def main(
 
             print(format_robot(result['summary']))
             print()
-            print(f"[{ROBOT_COLOR}]\n{result['detail']}\n")
+            if 'detail' in result:
+                print(f"[{ROBOT_COLOR}]\n{result['detail']}\n")
 
             if 'query' in result:
                 print(format_query(result['query']))
