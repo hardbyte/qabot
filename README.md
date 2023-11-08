@@ -63,87 +63,45 @@ Even on (public) data stored in S3:
 
 You can even load data from disk/URL via the natural language query:
 
+> Load the file 'data/titanic.csv' into a table called 'raw_passengers'. 
+> Create a view of the raw passengers table for just the male passengers. What 
+> was the average fare for surviving male passengers?
 
 ```
-qabot -q "Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?" -v
+~/Dev/qabot> qabot -q "Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?" -v
  🦆 Creating local DuckDB database...
- 🤖 Using model: gpt-3.5-turbo. Max LLM/function iterations before answer 20
+ 🤖 Using model: gpt-4-1106-preview. Max LLM/function iterations before answer 20
  🚀 Sending query to LLM
- 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?
+ 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the    
+average fare for surviving male passengers?
  🤖 load_data
 {'files': ['data/titanic.csv']}
  🦆 Imported with SQL:
 ["create table 'titanic' as select * from 'data/titanic.csv';"]
- 🤖 show_tables
- 🦆 name
-qabot_queries
-titanic
- 🤖 describe_table
-{'table': 'titanic'}
- 🦆 titanic
-column_name,data_type
-PassengerId,BIGINT
-Survived,BIGINT
-Pclass,BIGINT
-Name,VARCHAR
-Sex,VARCHAR
-Age,DOUBLE
-SibSp,BIGINT
-Parch,BIGINT
-Ticket,VARCHAR
-Fare,DOUBLE
-Cabin,VARCHAR
-Embarked,VARCHAR
-select count(*) from 'titanic';
-count_star()
-891
-select * from 'titanic' limit 3;
-PassengerId,Survived,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked
-1,0,3,Braund, Mr. Owen Harris,male,22.0,1,0,A/5 21171,7.25,None,S
-2,1,1,Cumings, Mrs. John Bradley (Florence Briggs Thayer),female,38.0,1,0,PC 17599,71.2833,C85,C
-3,1,3,Heikkinen, Miss. Laina,female,26.0,0,0,STON/O2. 3101282,7.925,None,S
  🤖 execute_sql
-{'query': "CREATE VIEW male_passengers AS SELECT * FROM titanic WHERE Sex = 'male'"}
+{'query': "CREATE VIEW male_passengers AS SELECT * FROM titanic WHERE Sex = 'male';"}
  🦆 No output
- 🤖 describe_table
-{'table': 'male_passengers'}
- 🦆 male_passengers
-column_name,data_type
-PassengerId,BIGINT
-Survived,BIGINT
-Pclass,BIGINT
-Name,VARCHAR
-Sex,VARCHAR
-Age,DOUBLE
-SibSp,BIGINT
-Parch,BIGINT
-Ticket,VARCHAR
-Fare,DOUBLE
-Cabin,VARCHAR
-Embarked,VARCHAR
-select count(*) from 'male_passengers';
-count_star()
-577
-select * from 'male_passengers' limit 3;
-PassengerId,Survived,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked
-1,0,3,Braund, Mr. Owen Harris,male,22.0,1,0,A/5 21171,7.25,None,S
-5,0,3,Allen, Mr. William Henry,male,35.0,0,0,373450,8.05,None,S
-6,0,3,Moran, Mr. James,male,None,0,0,330877,8.4583,None,Q
  🤖 execute_sql
-{'query': 'SELECT AVG(Fare) AS average_fare FROM male_passengers WHERE Survived = 1'}
+{'query': 'SELECT AVG(Fare) as average_fare FROM male_passengers WHERE Survived = 1;'}
  🦆 average_fare
 40.82148440366974
- 🦆 {'summary': 'The average fare for surviving male passengers was $40.82.', 'detail': "To calculate the average fare for surviving male passengers, I created a view called 'male_passengers' that contains only the male passengers from the 'titanic' 
-table. Then, I executed the SQL query `SELECT AVG(Fare) AS average_fare FROM male_passengers WHERE Survived = 1` to calculate the average fare for the surviving male passengers."}
+ 🦆 {"summary": "The average fare for surviving male passengers was approximately $40.82.", "detail": "The average fare for surviving male passengers was
+calculated by creating a view called `male_passengers` to filter only the male passengers from the `titanic` table, and then running a query to calculate the      
+average fare for male passengers who survived. The calculated average fare is approximately $40.82.", "query": "CREATE VIEW male_passengers AS SELECT * FROM       
+titanic WHERE Sex = 'male';\nSELECT AVG(Fare) as average_fare FROM male_passengers WHERE Survived = 1;"}
 
 
  🚀 Question:
- 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?
- 🤖 The average fare for surviving male passengers was $40.82.
+ 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the    
+average fare for surviving male passengers?
+ 🤖 The average fare for surviving male passengers was approximately $40.82.
 
 
-To calculate the average fare for surviving male passengers, I created a view called 'male_passengers' that contains only the male passengers from the 'titanic' table. Then, I executed the SQL query `SELECT AVG(Fare) AS average_fare FROM 
-male_passengers WHERE Survived = 1` to calculate the average fare for the surviving male passengers.
+The average fare for surviving male passengers was calculated by creating a view called `male_passengers` to filter only the male passengers from the `titanic`    
+table, and then running a query to calculate the average fare for male passengers who survived. The calculated average fare is approximately $40.82.
+
+CREATE VIEW male_passengers AS SELECT * FROM titanic WHERE Sex = 'male';
+SELECT AVG(Fare) as average_fare FROM male_passengers WHERE Survived = 1;
 
 ```
 
@@ -152,7 +110,7 @@ male_passengers WHERE Survived = 1` to calculate the average fare for the surviv
 You need to set the `OPENAI_API_KEY` environment variable to your OpenAI API key, 
 which you can get from [here](https://platform.openai.com/account/api-keys).
 
-Install the `qabot` command line tool using pip/poetry:
+Install the `qabot` command line tool using pip/pipx:
 
 
 ```bash
@@ -189,7 +147,7 @@ The largest family who did not survive was the Sage family, with 8 members.
 
 ## Query WikiData
 
-Use the `-w` flag to query wikidata. For best results use the `gpt-4` model.
+Use the `-w` flag to query wikidata. For best results use a `gpt-4` or similar model.
 ```bash
 $ EXPORT QABOT_MODEL_NAME=gpt-4
 $ qabot -w -q "How many Hospitals are there located in Beijing"
