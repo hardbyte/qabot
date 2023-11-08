@@ -3,7 +3,15 @@
 Query local or remote files with natural language queries powered by
 OpenAI's `gpt` and `duckdb` 🦆.
 
-Can query Wikidata and local files.
+Can query Wikidata, local and remote files.
+
+## Installation
+
+Install with [pipx](https://pypa.github.io/pipx/installation/):
+
+```
+pipx install qabot
+```
 
 ## Command Line Usage
 
