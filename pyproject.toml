@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qabot"
-version = "0.4.4"
+version = "0.4.5"
 license = "Apache-2.0"
 description = "Query local or remote data files with natural language queries powered by OpenAI and DuckDB."
 authors = ["Brian Thorne <brian@hardbyte.nz>"]
@@ -13,15 +13,18 @@ qabot = "qabot.cli:run"
 
 [tool.poetry.dependencies]
 python = ">=3.9"
-openai = "^0.28.0"
-duckdb = "^0.8.1"
+openai = "^1.1.1"
+duckdb = "^0.9.1"
 typer = "^0.9.0"
-rich = "^13.3.3"
-httpx = "^0.25.0"
+rich = "^13.6.0"
+httpx = "^0.25.1"
 tenacity = "^8.2.3"
 setuptools = "^68.2.2"
-pydantic = "^2.3.0"
+pydantic = "^2.4.2"
 pydantic-settings = "^2.0.3"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.1.4"
 
 [build-system]
 requires = ["poetry-core"]

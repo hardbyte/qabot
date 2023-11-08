@@ -1,4 +1,3 @@
-from typing import Optional
 import httpx
 
 
@@ -48,7 +47,7 @@ class WikiDataQueryTool:
     If an error is returned, you may rewrite the query and try again. If you are unsure about the response
     you can try rewrite the query and try again. Prefer local data before using this tool.
     """
-    base_url: str = 'https://query.wikidata.org/sparql'
+    base_url: str = "https://query.wikidata.org/sparql"
     httpx_client: httpx.AsyncClient = None
 
     def __init__(self, *args, **kwargs):
@@ -56,11 +55,15 @@ class WikiDataQueryTool:
         self.httpx_client = httpx.AsyncClient()
 
     def _run(self, query: str) -> str:
-        r = httpx.get(self.base_url, params={'format': 'json', 'query': query}, timeout=60)
-        data = r.text   # no point parsing the json
+        r = httpx.get(
+            self.base_url, params={"format": "json", "query": query}, timeout=60
+        )
+        data = r.text  # no point parsing the json
         return data
 
     async def _arun(self, query: str) -> str:
-        r = await self.httpx_client.get(self.base_url, params={'format': 'json', 'query': query}, timeout=60)
+        r = await self.httpx_client.get(
+            self.base_url, params={"format": "json", "query": query}, timeout=60
+        )
         data = r.text
         return data

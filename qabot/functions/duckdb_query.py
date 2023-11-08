@@ -27,10 +27,10 @@ def run_sql_catch_error(conn, sql: str):
                     if len(row) == 1:
                         rendered_rows.append(str(row[0]))
                     else:
-                        rendered_rows.append(','.join(str(x) for x in row))
+                        rendered_rows.append(",".join(str(x) for x in row))
 
-                rendered_data = '\n'.join(rendered_rows)
-                rendered_output = ','.join(output.columns) + '\n' + rendered_data
+                rendered_data = "\n".join(rendered_rows)
+                rendered_output = ",".join(output.columns) + "\n" + rendered_data
             except AttributeError:
                 rendered_output = str(output)
         return rendered_output[:4000]

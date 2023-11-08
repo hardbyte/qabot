@@ -1,9 +1,7 @@
-import torch
-import transformers
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 
-#transformers.logging.set_verbosity_info()
+# transformers.logging.set_verbosity_info()
 
 tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
 

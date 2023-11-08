@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from langchain import LLMChain, PromptTemplate
 
 from langchain.chat_models import ChatOpenAI
@@ -61,7 +59,7 @@ prompt = PromptTemplate(
     template=template,
     input_variables=["original_query", "context"],
     partial_variables={"format_instructions": parser.get_format_instructions()},
-    output_parser=parser
+    output_parser=parser,
 )
 
 # Note: I don't think we want to use an agent, just a chain
@@ -71,8 +69,10 @@ llm_chain = LLMChain(
     prompt=prompt,
 )
 
-inputs = {'context': """The titanic table contains information about the passengers on the titanic.""",
-          'original_query': "How many people on the titanic were male?"}
+inputs = {
+    "context": """The titanic table contains information about the passengers on the titanic.""",
+    "original_query": "How many people on the titanic were male?",
+}
 
 # Need to line up the input/output keys to chain together llms
 
@@ -83,7 +83,9 @@ print(response)
 
 prompt_value = prompt.format_prompt(**inputs)
 
-parsed_response: DecomposeQueryRequest = retry_parser.parse_with_prompt(response, prompt_value)
+parsed_response: DecomposeQueryRequest = retry_parser.parse_with_prompt(
+    response, prompt_value
+)
 
 print(parsed_response.action)
 print(parsed_response.response)
@@ -94,7 +96,6 @@ print(parsed_response.response)
 #
 # bad_response = '{"action": "search", "query": "How many people on the titanic were male"}'
 # print(retry_parser.parse_with_prompt(bad_response, prompt_value))
-
 
 
 #

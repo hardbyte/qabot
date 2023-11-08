@@ -38,7 +38,6 @@ def format_rocket(msg):
 
 
 def pretty_print_conversation(messages):
-
     for message in messages:
         color = role_to_color[message["role"]]
         m = f"{message['role']}: {message['content']}"
@@ -48,4 +47,3 @@ def pretty_print_conversation(messages):
         elif message["role"] == "assistant" and "function_call" in message:
             m = f"assistant {message['function_call']['name']}({message['function_call']['arguments']})"
         print(f"[{color}]{m}[/{color}]\n")
-
