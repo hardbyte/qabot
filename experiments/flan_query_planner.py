@@ -34,34 +34,34 @@ Thought: I should look at the tables in the database to see what I can query.
 template = """Question: {question}
 """
 tools = [
-        Tool(
-            name="Show Tables",
-            func=lambda _: "show tables;",
-            description="Useful to show the available tables and views. Input is an empty string, output is a comma separated list of tables in the database."
-        ),
-        Tool(
-            name="Check Query",
-            func=lambda query: query,
-            description="Useful to check a query is valid. Always use this tool before executing a query"
-        ),
-        Tool(
-            name="Describe Table",
-            func=lambda table: table,
-            description="Useful to show the column names and types of a table or view. Use a valid table name as the input."
-        ),
-        #DuckDBTool(engine=database),
-        Tool(name="Execute SQL", func=lambda sql: sql, description="Useful to execute a SQL query. Use a valid SQL query as the input.")
-    ]
+    Tool(
+        name="Show Tables",
+        func=lambda _: "show tables;",
+        description="Useful to show the available tables and views. Input is an empty string, output is a comma separated list of tables in the database.",
+    ),
+    Tool(
+        name="Check Query",
+        func=lambda query: query,
+        description="Useful to check a query is valid. Always use this tool before executing a query",
+    ),
+    Tool(
+        name="Describe Table",
+        func=lambda table: table,
+        description="Useful to show the column names and types of a table or view. Use a valid table name as the input.",
+    ),
+    # DuckDBTool(engine=database),
+    Tool(
+        name="Execute SQL",
+        func=lambda sql: sql,
+        description="Useful to execute a SQL query. Use a valid SQL query as the input.",
+    ),
+]
 prompt = ZeroShotAgent.create_prompt(
-        tools,
-        prefix=prefix,
-        suffix=suffix,
-        input_variables=["input", "agent_scratchpad"]
-    )
+    tools, prefix=prefix, suffix=suffix, input_variables=["input", "agent_scratchpad"]
+)
 
 llm = HuggingFaceHub(
-    repo_id="google/flan-t5-xxl",
-    model_kwargs={"temperature": 0, "max_length": 4000}
+    repo_id="google/flan-t5-xxl", model_kwargs={"temperature": 0, "max_length": 4000}
 )
 
 llm_chain = LLMChain(prompt=prompt, llm=llm)
@@ -95,11 +95,11 @@ Thought: I should look at the schema of the 'titanic' table to see what I can qu
 question = """how many passengers survived by gender from the 'titanic' table.
 """
 
-result = llm_chain({'input': question, 'agent_scratchpad': agent_scratchpad})
+result = llm_chain({"input": question, "agent_scratchpad": agent_scratchpad})
 
-if 'text' in result:
-    print(result['text'])
+if "text" in result:
+    print(result["text"])
 
 print()
 print(result)
-#print(llm_chain.run({'input': question, 'agent_scratchpad': {}}))
+# print(llm_chain.run({'input': question, 'agent_scratchpad': {}}))
