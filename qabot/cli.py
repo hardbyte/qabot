@@ -127,9 +127,10 @@ def main(
             print()
             query = Prompt.ask(FOLLOW_UP_PROMPT)
 
-            if query.lower() in {"q", "exit", "quit"} and Confirm.ask(
-                "Are you sure you want to Quit?"
-            ):
+            if query.lower() in {'n', 'no', "q", "exit", "quit"}:
+                #  and Confirm.ask(
+                #                 "Are you sure you want to Quit?"
+                #             )
                 break
 
             progress.start()
