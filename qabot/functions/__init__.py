@@ -5,7 +5,7 @@ def get_function_specifications(allow_wikidata: bool = True):
     function_specifications = [
         {
             "name": "execute_sql",
-            "description": """Run SQL queries with a local DuckDB database engine. Use for accessing data or any math computation""",
+            "description": """Run SQL queries with a local DuckDB database engine. Use for accessing data, COPYing to/from files or any math computation. """,
             "parameters": {
                 "type": "object",
                 "properties": {

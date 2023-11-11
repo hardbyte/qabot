@@ -1,3 +1,4 @@
+import json
 import time
 
 from rich import print
@@ -7,6 +8,7 @@ from qabot import create_duckdb, import_into_duckdb_from_files
 from qabot.agent import execute_function_call
 from qabot.config import Settings
 from qabot.download_utils import download_and_cache
+from qabot.formatting import pretty_print_conversation
 from qabot.functions import get_function_specifications
 from qabot.functions.describe_duckdb_table import describe_table_or_view
 from qabot.functions.duckdb_query import run_sql_catch_error
@@ -26,11 +28,25 @@ functions = {
 
 if __name__ == "__main__":
 
+    # Work out the average number of tracks per album, then tell me which artists have produced music over the most different
+    #     genres. Finally
+
+    # user_prompt = """
+    # Recommend upto 10 songs - ideally from different genres - that all have "love" in the title.
+    # Show the title, genre year and artist.
+    # """
+    #
     user_prompt = """
-    Work out the average number of tracks per album, then tell me which artists have produced music over the most different
-    genres. Finally recommend 10 songs from different artists that cover different genres.
-    In your summary please show the duckdb version used.
+    Create a csv of the email, first name, last name, and Genre of all Rock Music listeners.
+    The data should be ordered alphabetically by email address starting with A. Deal with duplicate 
+    email addresses.
     """
+
+    # user_prompt = """
+    #  Which countries have the most Invoices?
+    #  Which city has the best customers?
+    # """
+
     config = Settings()
     # Instantiate the OpenAI client using the API key from settings
     client = OpenAI(api_key=config.OPENAI_API_KEY)
@@ -66,7 +82,9 @@ if __name__ == "__main__":
         Note your tools are running on the users machine with access to their installed version
         of DuckDB, they likely have already loaded data and want you to interact with it via SQL.
         Ensure you only use paths relative to the users machine when they have asked you to.
-        To be clear `/mnt/data/file-XYZ` is not a valid path for use within DuckDB tools.
+        `/mnt/data/file-XYZ` is not a valid path for use within DuckDB tools.
+        
+        Consult the provided documentation to take advantage of DuckDB's new features.
         """,
         tools=tools,
         model="gpt-4-1106-preview",
@@ -106,7 +124,7 @@ if __name__ == "__main__":
 
                 # Execute the corresponding local function
                 function_call_results = execute_function_call(
-                    tool_call.function, functions,
+                    tool_call.function, functions, True
                 )
 
                 # Store the output (noting there could be multiple)
@@ -116,7 +134,7 @@ if __name__ == "__main__":
                 })
 
                 if function_name == "answer":
-                    print(function_call_results)
+                    print(json.loads(function_call_results))
 
             # Submit the output of all the tools back to the run
             client.beta.threads.runs.submit_tool_outputs(
@@ -137,3 +155,5 @@ if __name__ == "__main__":
                 print(text_or_image.text.value)
 
     print("Completed Analysis")
+
+    # pretty_print_conversation(messages)
