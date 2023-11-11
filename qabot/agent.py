@@ -12,6 +12,7 @@ from openai.types.chat.chat_completion_message_tool_call import Function
 from rich import print
 
 from qabot.formatting import format_robot, format_duck, format_user
+from qabot.functions import get_function_specifications
 from qabot.functions.data_loader import import_into_duckdb_from_files
 from qabot.functions.describe_duckdb_table import describe_table_or_view
 from qabot.functions.duckdb_query import run_sql_catch_error
@@ -59,117 +60,7 @@ class Agent:
             "load_data": lambda files: "Imported with SQL:\n"
             + str(import_into_duckdb_from_files(database_engine, files)[1]),
         }
-        self.function_specifications = [
-            {
-                "name": "execute_sql",
-                "description": """Run SQL queries with a local DuckDB database engine. Use for accessing data or any math computation""",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "DuckDB dialect SQL query. Check the table exists first.",
-                        },
-                    },
-                    "required": ["query"],
-                },
-            },
-            {
-                "name": "show_tables",
-                "description": "Show the locally available database tables and views",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                },
-            },
-            {
-                "name": "describe_table",
-                "description": "Show the column names and types of a local database table or view",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "table": {
-                            "type": "string",
-                            "description": "The table or view name",
-                        },
-                    },
-                    "required": ["table"],
-                },
-            },
-            {
-                "name": "load_data",
-                "description": "Load data from one or more local or remote files into the local DuckDB database",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "files": {
-                            "type": "array",
-                            "description": "File path or urls",
-                            "items": {
-                                "type": "string",
-                                "examples": [
-                                    "data/chinook.sqlite",
-                                    "https://duckdb.org/data/prices.csv",
-                                ],
-                            },
-                        },
-                    },
-                    "required": ["file"],
-                },
-            },
-            # A special function to call to summarize the answer
-            {
-                "name": "answer",
-                "description": "Final reply to the user question with a detailed fact based answer",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "summary": {
-                            "type": "string",
-                            "description": "A standalone one-line summary answering the users question",
-                        },
-                        "detail": {
-                            "type": "string",
-                            "description": "detailed answer to the users question including how it was computed. Markdown is acceptable",
-                        },
-                        "query": {
-                            "type": "string",
-                            "description": "If the user can re-run the query, include it here",
-                        },
-                        # "value": {
-                        #     "type": "any",
-                        #     "description": "If the answer is a number or array, include the value here",
-                        # }
-                    },
-                    "required": ["summary", "detail"],
-                },
-            },
-        ]
-
-        if allow_wikidata:
-            self.function_specifications.append(
-                {
-                    "name": "wikidata",
-                    "description": textwrap.dedent(
-                        """Useful for when you need specific data from Wikidata.
-                        Input to this tool is a single correct SPARQL statement for Wikidata. Limit all requests to 10 or fewer rows. 
-
-                        Output is the raw response in json. If the query is not correct, an error message will be returned. 
-                        If an error is returned, you may rewrite the query and try again. If you are unsure about the response
-                        you can try rewrite the query and try again. Prefer local data before using this tool.
-                        """
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "A valid SPARQL query for Wikidata",
-                            },
-                        },
-                    },
-                }
-            )
+        self.function_specifications = get_function_specifications(allow_wikidata)
 
         if clarification_callback is not None:
             self.function_specifications.append(
@@ -315,7 +206,10 @@ def execute_function_call(function, functions, verbose=False):
                 print(format_robot(function_name), kwargs)
             else:
                 print(format_robot(function_name))
-        results = f(**kwargs)
+        try:
+            results = f(**kwargs)
+        except Exception as e:
+            results = f"Error: Calling function {function_name} raised an exception.\n\n{str(e)}"
     elif function_name == "answer":
         return json.dumps(kwargs)
 
