@@ -59,31 +59,32 @@ class Agent:
                 **{"role": "system", "content": system_prompt}
             ),
             # Force the assistant to get the current tables
-            ChatCompletionAssistantMessageParam(
-                role="assistant",
-                content='',
-                tool_calls=[
-                    ChatCompletionMessageToolCallParam(
-                        type="function",
-                        id="show_tables",
-                        function=Function(name="show_tables", arguments="{}"),
-                    )
-                ],
-            ),
+            # This should be a parameter to the Agent
+            # ChatCompletionAssistantMessageParam(
+            #     role="assistant",
+            #     content='',
+            #     tool_calls=[
+            #         ChatCompletionMessageToolCallParam(
+            #             type="function",
+            #             id="show_tables",
+            #             function=Function(name="show_tables", arguments="{}"),
+            #         )
+            #     ],
+            # ),
         ]
 
-        messages.append(
-            ChatCompletionToolMessageParam(
-                **{
-                    "role": "tool",
-                    "tool_call_id": "show_tables",
-                    "content": execute_tool_call(
-                        messages[-1]['tool_calls'][0]['function'],
-                        self.tools
-                    ),
-                }
-            )
-        )
+        # messages.append(
+        #     ChatCompletionToolMessageParam(
+        #         **{
+        #             "role": "tool",
+        #             "tool_call_id": "show_tables",
+        #             "content": execute_tool_call(
+        #                 messages[-1]['tool_calls'][0]['function'],
+        #                 self.tools
+        #             ),
+        #         }
+        #     )
+        # )
 
         self.messages = messages
 
