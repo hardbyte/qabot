@@ -40,3 +40,14 @@ def run_sql_catch_error(conn, sql: str):
         return str(e)
     # except Exception as e:
     #     return str(e)
+
+
+class ExecuteSqlTool:
+    def __init__(self, **kwargs):
+        self.db = kwargs.get('database_engine')
+        self.default_query = kwargs.get('query')
+
+    def run(self, query: str = None):
+        if query is None and self.default_query is not None:
+            query = self.default_query
+        return run_sql_catch_error(self.db, query)

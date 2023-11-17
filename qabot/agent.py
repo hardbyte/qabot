@@ -12,13 +12,11 @@ from openai.types.chat.chat_completion_message_tool_call import Function
 from rich import print
 
 from qabot.formatting import format_robot, format_duck, format_user
-from qabot.functions import get_function_specifications
-from qabot.functions.data_loader import import_into_duckdb_from_files
-from qabot.functions.describe_duckdb_table import describe_table_or_view
-from qabot.functions.duckdb_query import run_sql_catch_error
-from qabot.functions.wikidata import WikiDataQueryTool
+from qabot.dynamic_tooling import get_tools, instantiate_tools
+
 from qabot.llm import chat_completion_request
 from qabot.prompts.system import system_prompt
+from qabot.tool_definition import QabotTool
 
 
 class Agent:
@@ -31,8 +29,7 @@ class Agent:
         self,
         database_engine=None,
         model_name: str = "gpt-3.5-turbo",
-        allow_wikidata: bool = False,
-        clarification_callback: Callable[[str], str] | None = None,
+        tools: dict[str, QabotTool] = None,
         verbose=False,
         max_iterations: int = 20,
     ):
@@ -49,39 +46,13 @@ class Agent:
                     f"Using model: {model_name}. Max LLM/function iterations before answer {max_iterations}"
                 )
             )
-        self.functions = {
-            "clarify": clarification_callback,
-            "wikidata": lambda query: WikiDataQueryTool()._run(query),
-            "execute_sql": lambda query: run_sql_catch_error(database_engine, query),
-            "show_tables": lambda: run_sql_catch_error(database_engine, "show tables"),
-            "describe_table": lambda table: describe_table_or_view(
-                database_engine, table
-            ),
-            "load_data": lambda files: "Imported with SQL:\n"
-            + str(import_into_duckdb_from_files(database_engine, files)[1]),
-        }
-        self.function_specifications = get_function_specifications(allow_wikidata)
 
-        if clarification_callback is not None:
-            self.function_specifications.append(
-                {
-                    "name": "clarify",
-                    "description": textwrap.dedent(
-                        """Useful for when you need to ask the user a question to clarify their request.
-                        Input to this tool is a single question for the user. Output is the user's response
-                        """
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "clarification": {
-                                "type": "string",
-                                "description": "A question or prompt for the user",
-                            },
-                        },
-                    },
-                }
-            )
+        self.tools = tools
+
+        #     "load_data": lambda files: "Imported with SQL:\n"
+        #     + str(import_into_duckdb_from_files(database_engine, files)[1]),
+        # }
+
 
         messages: List[ChatCompletionMessageParam] = [
             ChatCompletionSystemMessageParam(
@@ -106,7 +77,10 @@ class Agent:
                 **{
                     "role": "tool",
                     "tool_call_id": "show_tables",
-                    "content": execute_function_call(messages[-1]['tool_calls'][0]['function'], self.functions),
+                    "content": execute_tool_call(
+                        messages[-1]['tool_calls'][0]['function'],
+                        self.tools
+                    ),
                 }
             )
         )
@@ -129,8 +103,15 @@ class Agent:
             is_final_answer, result = self.llm_step()
 
             if is_final_answer:
-                return json.loads(result)
-
+                if isinstance(result, str):
+                    try:
+                        return json.loads(result)
+                    except json.decoder.JSONDecodeError:
+                        return result
+                elif isinstance(result, dict):
+                    return result
+                else:
+                    return str(result)
         # If we get here, we've hit the max number of iterations
         # Let's ask the LLM to summarize the errors/answer as best it can
         self.messages.extend(
@@ -151,7 +132,7 @@ class Agent:
 
         chat_response = chat_completion_request(
             self.messages,
-            functions=self.function_specifications,
+            functions=[tool.definition.spec for tool in self.tools.values()],
             model=self.model_name,
             function_call=forced_function_call,
         )
@@ -165,8 +146,8 @@ class Agent:
                 function_name = tool_call.function.name
                 call_id = tool_call.id
 
-                function_call_results = execute_function_call(
-                    tool_call.function, self.functions, self.verbose
+                function_call_results = execute_tool_call(
+                    tool_call.function, self.tools, self.verbose
                 )
 
                 # Inject a response message for the function call
@@ -192,29 +173,32 @@ def create_agent_executor(**kwargs):
     return Agent(**kwargs)
 
 
-def execute_function_call(function, functions, verbose=False):
-    function_name = function.name
+def execute_tool_call(tool_call, tools: dict[str, QabotTool], verbose=False):
+    tool_name = tool_call.name
     try:
-        kwargs = json.loads(function.arguments)
+        kwargs = json.loads(tool_call.arguments)
     except json.decoder.JSONDecodeError:
         return "Error: function arguments were not valid JSON"
 
-    if function_name in functions:
-        f = functions[function_name]
-        if verbose:
-            if kwargs:
-                print(format_robot(function_name), kwargs)
-            else:
-                print(format_robot(function_name))
-        try:
-            results = f(**kwargs)
-        except Exception as e:
-            results = f"Error: Calling function {function_name} raised an exception.\n\n{str(e)}"
-    elif function_name == "answer":
+    if tool_name == "answer":
         return json.dumps(kwargs)
 
+    if tool_name in tools:
+        tool = tools[tool_name]
+        if verbose:
+            if kwargs:
+                print(format_robot(tool_name), kwargs)
+            else:
+                print(format_robot(tool_name))
+        if tool.implementation is None:
+            return "Error: tool not implemented"
+        try:
+            results = tool.implementation.run(**kwargs)
+        except Exception as e:
+            results = f"Error: Calling function {tool_name} raised an exception.\n\n{str(e)}"
+
     else:
-        return f"Error: function {function_name} does not exist"
+        return f"Error: function {tool_name} does not exist"
 
     return results
     # return ChatCompletionToolMessageParam(content=results, role='tool', tool_call_id=call_id)

@@ -1,4 +1,4 @@
-from qabot.functions.duckdb_query import run_sql_catch_error
+from qabot.tools.duckdb_query import run_sql_catch_error
 
 
 def describe_table_or_view(database, table):
@@ -9,3 +9,11 @@ def describe_table_or_view(database, table):
     table_size = run_sql_catch_error(database, table_count_rows_query)
     table_preview = run_sql_catch_error(database, table_first_rows_query)[:4000]
     return f"{table}\n{table_description}\n{table_count_rows_query}\n{table_size}\n{table_first_rows_query}\n{table_preview}"
+
+
+class DescribeTableTool:
+    def __init__(self, **kwargs):
+        self.db = kwargs.get("database_engine")
+
+    def run(self, table: str = None):
+        return describe_table_or_view(self.db, table)

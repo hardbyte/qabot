@@ -54,14 +54,14 @@ class WikiDataQueryTool:
         super().__init__(*args, **kwargs)
         self.httpx_client = httpx.AsyncClient()
 
-    def _run(self, query: str) -> str:
+    def run(self, query: str) -> str:
         r = httpx.get(
             self.base_url, params={"format": "json", "query": query}, timeout=60
         )
         data = r.text  # no point parsing the json
         return data
 
-    async def _arun(self, query: str) -> str:
+    async def arun(self, query: str) -> str:
         r = await self.httpx_client.get(
             self.base_url, params={"format": "json", "query": query}, timeout=60
         )

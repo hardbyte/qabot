@@ -7,7 +7,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
 
 from qabot.config import Settings
-from qabot.functions.data_loader import import_into_duckdb_from_files, create_duckdb
+from qabot.dynamic_tooling import get_tools, instantiate_tools
+from qabot.tools.data_loader import import_into_duckdb_from_files, create_duckdb
 from qabot.agent import Agent
 from qabot.formatting import (
     format_duck,
@@ -84,14 +85,21 @@ def main(
                 + format_robot(clarification)
             )
 
+        tools = get_tools(
+            include_defaults=True,
+            clarification_callback=clarification,
+            include_wikidata=settings.QABOT_ENABLE_WIKIDATA and enable_wikidata,
+        )
+        tools = instantiate_tools(tools, **{
+            "database_engine": database_engine,
+            #"clarification_callback": clarification,
+        })
+
         agent = Agent(
             database_engine=database_engine,
             verbose=verbose,
             model_name=settings.QABOT_MODEL_NAME,
-            allow_wikidata=settings.QABOT_ENABLE_WIKIDATA and enable_wikidata,
-            clarification_callback=clarification
-            if settings.QABOT_ENABLE_HUMAN_CLARIFICATION
-            else None,
+            tools=tools,
         )
 
         progress.remove_task(t2)
