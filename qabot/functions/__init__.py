@@ -27,7 +27,7 @@ def get_function_specifications(allow_wikidata: bool = True):
         },
         {
             "name": "describe_table",
-            "description": "Show the column names and types of a local database table or view",
+            "description": "Show the column names and types of a local database table or view. For best results, pass in the fully qualified name: 'table_catalog.table_schema.table_name'",
             "parameters": {
                 "type": "object",
                 "properties": {

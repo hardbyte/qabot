@@ -30,7 +30,7 @@ class Agent:
     def __init__(
         self,
         database_engine=None,
-        model_name: str = "gpt-3.5-turbo",
+        model_name: str = None,
         allow_wikidata: bool = False,
         clarification_callback: Callable[[str], str] | None = None,
         verbose=False,
@@ -53,7 +53,7 @@ class Agent:
             "clarify": clarification_callback,
             "wikidata": lambda query: WikiDataQueryTool()._run(query),
             "execute_sql": lambda query: run_sql_catch_error(database_engine, query),
-            "show_tables": lambda: run_sql_catch_error(database_engine, "show tables"),
+            "show_tables": lambda: run_sql_catch_error(database_engine, "select table_catalog, table_schema, table_name from system.information_schema.tables where table_schema != 'information_schema';"),
             "describe_table": lambda table: describe_table_or_view(
                 database_engine, table
             ),

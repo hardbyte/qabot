@@ -44,13 +44,15 @@ def import_into_duckdb_from_files(
         if file_path.startswith("postgresql://"):
             try:
                 duckdb_connection.sql("INSTALL postgres_scanner;")
-                duckdb_connection.sql("LOAD postgres_scanner;")
             except Exception:
                 print(
                     "Failed to install postgres_scanner extension. Loading directly from postgresql will not be supported"
                 )
                 continue
-            duckdb_connection.execute(f"CALL postgres_attach('{file_path}')")
+            # Probably too risky to have write access to a remote Postgresql database!
+            duckdb_connection.execute(f"ATTACH '{file_path}' as postgres_db (TYPE postgres, READ_ONLY);")
+
+            _set_search_path(duckdb_connection)
         elif file_path.endswith(".sqlite"):
             try:
                 duckdb_connection.sql("INSTALL sqlite;")
@@ -60,7 +62,9 @@ def import_into_duckdb_from_files(
                     "Failed to install sqlite extension. Loading directly from sqlite will not be supported"
                 )
                 continue
-            duckdb_connection.execute(f"CALL sqlite_attach('{file_path}')")
+            #duckdb_connection.execute(f"CALL sqlite_attach('{file_path}')")
+            duckdb_connection.execute(f"ATTACH '{file_path}' as sqlite_db (TYPE SQLITE);")
+            _set_search_path(duckdb_connection)
         else:
             executed_sql.append(
                 load_external_data_into_db(duckdb_connection, file_path)
@@ -68,6 +72,11 @@ def import_into_duckdb_from_files(
 
     return duckdb_connection, executed_sql
 
+
+def _set_search_path(duckdb_connection: duckdb.DuckDBPyConnection):
+    db_names = [x[0] for x in duckdb_connection.sql(f"SELECT database_name FROM duckdb_databases() where internal = false;").fetchall()]
+    query = f"set search_path = '{','.join(db_names)}';"
+    duckdb_connection.execute(query)
 
 def load_external_data_into_db(
     conn: duckdb.DuckDBPyConnection, file_path, allow_view=True

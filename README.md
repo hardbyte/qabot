@@ -31,16 +31,18 @@ Total tokens 1749 approximate cost in USD: 0.05562
 ## Python Usage
 
 ```python
-from qabot import ask_wikidata, ask_file
+from qabot import ask_wikidata, ask_file, ask_database
 
 print(ask_wikidata("How many hospitals are there in New Zealand?"))
 print(ask_file("How many men were aboard the titanic?", 'data/titanic.csv'))
+print(ask_database("How many product images are there?", 'postgresql://user:password@localhost:5432/dbname'))
 ```
 
 Output:
 ```text
 There are 54 hospitals in New Zealand.
 There were 577 male passengers on the Titanic.
+There are 6,225 product images.
 ```
 
 
