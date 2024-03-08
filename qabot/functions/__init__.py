@@ -5,7 +5,9 @@ def get_function_specifications(allow_wikidata: bool = True):
     function_specifications = [
         {
             "name": "execute_sql",
-            "description": """Run SQL queries with a local DuckDB database engine. Use for accessing data, COPYing to/from files or any math computation. """,
+            "description": """Run SQL queries with a local DuckDB database engine. Use for accessing data, COPYing to/from files or any math computation. 
+            For best results, pass in the fully qualified name: 'table_catalog.table_schema.table_name'
+            """,
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -27,7 +29,7 @@ def get_function_specifications(allow_wikidata: bool = True):
         },
         {
             "name": "describe_table",
-            "description": "Show the column names and types of a local database table or view. For best results, pass in the fully qualified name: 'table_catalog.table_schema.table_name'",
+            "description": "Show the column names and types of a local database table or view.",
             "parameters": {
                 "type": "object",
                 "properties": {

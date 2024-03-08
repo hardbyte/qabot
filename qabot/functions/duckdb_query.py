@@ -33,7 +33,9 @@ def run_sql_catch_error(conn, sql: str):
                 rendered_output = ",".join(output.columns) + "\n" + rendered_data
             except AttributeError:
                 rendered_output = str(output)
-        return rendered_output[:4000]
+        if len(rendered_output) > 6000:
+            print("Cutting output to 6000 characters")
+        return rendered_output[:6000]
     except duckdb.ProgrammingError as e:
         return str(e)
     except duckdb.Error as e:
