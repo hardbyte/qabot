@@ -63,17 +63,17 @@ def get_function_specifications(allow_wikidata: bool = True):
         # A special function to call to summarize the answer
         {
             "name": "answer",
-            "description": "Final reply to the user question with a detailed fact based answer",
+            "description": "Reply to the user question with a detailed answer",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "summary": {
                         "type": "string",
-                        "description": "A standalone one-line summary answering the users question",
+                        "description": "A standalone one-line summary answering the users question or briefly explaining why the question can't be answered",
                     },
                     "detail": {
                         "type": "string",
-                        "description": "detailed answer to the users question including how it was computed. Markdown is acceptable",
+                        "description": "detailed answer to the user's question including how it was computed. Markdown is acceptable",
                     },
                     "query": {
                         "type": "string",

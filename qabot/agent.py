@@ -68,7 +68,7 @@ class Agent:
                     "name": "clarify",
                     "description": textwrap.dedent(
                         """Useful for when you need to ask the user a question to clarify their request.
-                        Input to this tool is a single question for the user. Output is the user's response
+                        Input to this tool is a single question for the user. Output is the user's response.
                         """
                     ),
                     "parameters": {

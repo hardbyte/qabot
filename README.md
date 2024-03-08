@@ -3,7 +3,7 @@
 Query local or remote files with natural language queries powered by
 OpenAI's `gpt` and `duckdb` 🦆.
 
-Can query Wikidata, local and remote files.
+Can query local and remote files (CSV, parquet)
 
 ## Installation
 
@@ -12,6 +12,10 @@ Install with [pipx](https://pypa.github.io/pipx/installation/):
 ```
 pipx install qabot
 ```
+
+## Security Risks
+
+This program gives an LLM access to your local and network accessible files and allows it to execute arbitrary SQL queries, see `Security.md` for more information.
 
 ## Command Line Usage
 
@@ -187,8 +191,9 @@ Result:
 
 ## Ideas
 
+- optionally pass in a context file to pass directly to the LLM
 - streaming mode to output results as they come in
-- token limits
+- token limits and better reporting of costs
 - Supervisor agent - assess whether a query is "safe" to run, could ask for user confirmation to run anything that gets flagged.
 - Often we can zero-shot the question and get a single query out - perhaps we try this before the MKL chain
 - test each zeroshot agent individually
