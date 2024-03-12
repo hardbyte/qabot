@@ -37,7 +37,9 @@ def create_duckdb(duckdb_path: str = ":memory:") -> duckdb.DuckDBPyConnection:
 
 
 def import_into_duckdb_from_files(
-    duckdb_connection: duckdb.DuckDBPyConnection, files: list[str]
+        duckdb_connection: duckdb.DuckDBPyConnection,
+        files: list[str],
+        dangerously_allow_write_access=False
 ) -> Tuple[duckdb.DuckDBPyConnection, list[str]]:
     executed_sql = []
     for i, file_path in enumerate(files, 1):
@@ -49,9 +51,24 @@ def import_into_duckdb_from_files(
                     "Failed to install postgres_scanner extension. Loading directly from postgresql will not be supported"
                 )
                 continue
-            # Probably too risky to have write access to a remote Postgresql database!
-            duckdb_connection.execute(f"ATTACH '{file_path}' as postgres_db (TYPE postgres, READ_ONLY);")
+            db_type = "(TYPE postgres, READ_ONLY)" if not dangerously_allow_write_access else "(TYPE postgres)"
+            duckdb_connection.execute(f"ATTACH '{file_path}' as postgres_db {db_type};")
 
+            _set_search_path(duckdb_connection)
+        elif file_path.endswith('.xlsx'):
+            try:
+                duckdb_connection.sql("INSTALL spatial;")
+                duckdb_connection.sql("LOAD spatial;")
+            except Exception:
+                print(
+                    "Failed to install spatial extension. Loading directly from Excel files will not be supported"
+                )
+                continue
+            # use the filename as the table name
+            table_name, _ = os.path.splitext(os.path.basename(file_path))
+            # remove any non-alphanumeric characters
+            new_table_name = "".join([c for c in table_name if c.isalnum()])
+            duckdb_connection.execute(f"CREATE TABLE {new_table_name} AS select * from st_read('{file_path}');")
             _set_search_path(duckdb_connection)
         elif file_path.endswith(".sqlite"):
             try:

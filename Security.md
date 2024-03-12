@@ -26,6 +26,9 @@ arbitrary SQL queries with DuckDB, the LLM can therefore read and write files on
 
 A compromised Qabot has the potential to access and manipulate data on your computer or network.
 
+Duckdb has a function `read_text` which can read files from the local file system. A compromised
+LLM could be convinced to retrieve sensitive files from your computer.
+
 ## Acknowledgements
 
 Thanks to Miguel Coimbra from the [INESC-ID research institution in Lisbon](https://syssec.dpss.inesc-id.pt/) 

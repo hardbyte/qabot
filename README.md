@@ -48,7 +48,7 @@ There are 6,225 product images.
 
 ## Features
 
-Works on local CSV files:
+Works on local CSV and Excel files:
 
 ![](.github/local_csv_query.png)
 
