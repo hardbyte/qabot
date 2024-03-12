@@ -35,7 +35,9 @@ def run_sql_catch_error(conn, sql: str):
                 rendered_output = str(output)
         if len(rendered_output) > 6000:
             print("Cutting output to 6000 characters")
-        return rendered_output[:6000]
+            return rendered_output[:6000] + "\n\nOUTPUT TRUNCATED\n"
+        else:
+            return rendered_output
     except duckdb.ProgrammingError as e:
         return str(e)
     except duckdb.Error as e:

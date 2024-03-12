@@ -33,6 +33,14 @@ def get_function_specifications(allow_wikidata: bool = True):
             "parameters": {
                 "type": "object",
                 "properties": {
+                    "catalog": {
+                        "type": "string",
+                        "description": "The catalog if known e.g. 'postgres_db'.",
+                    },
+                    "schema": {
+                        "type": "string",
+                        "description": "The schema (if known)",
+                    },
                     "table": {
                         "type": "string",
                         "description": "The table or view name",

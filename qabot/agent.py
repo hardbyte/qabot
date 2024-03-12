@@ -54,8 +54,8 @@ class Agent:
             "wikidata": lambda query: WikiDataQueryTool()._run(query),
             "execute_sql": lambda query: run_sql_catch_error(database_engine, query),
             "show_tables": lambda: run_sql_catch_error(database_engine, "select table_catalog, table_schema, table_name from system.information_schema.tables where table_schema != 'information_schema';"),
-            "describe_table": lambda table: describe_table_or_view(
-                database_engine, table
+            "describe_table": lambda table, **kwargs: describe_table_or_view(
+                database_engine, table, **kwargs
             ),
             "load_data": lambda files: "Imported with SQL:\n"
             + str(import_into_duckdb_from_files(database_engine, files)[1]),
