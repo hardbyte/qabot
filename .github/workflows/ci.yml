@@ -43,7 +43,7 @@ jobs:
       # cache it.
       - name: Install Poetry
         uses: snok/install-poetry@v1
-        if: steps.cached-poetry.outputs.cache-hit != 'true'
+        #if: steps.cached-poetry.outputs.cache-hit != 'true'
         with:
           version: 1.7.1
           virtualenvs-create: true
@@ -60,7 +60,9 @@ jobs:
       # itself", which is what you want to avoid caching _your_ code. The `if` statement
       # ensures this only runs on a cache miss.
       - name: Install dependencies
-        run: poetry install --no-interaction --no-root
+        run: |
+          source $VENV
+          poetry install --no-interaction --no-root
         #if: steps.cache-deps.outputs.cache-hit != 'true'
 
       # Now install _your_ project. This isn't necessary for many types of projects -- particularly
@@ -68,13 +70,18 @@ jobs:
       # pyproject.toml and makes that if you add things like console-scripts at some point that
       # they'll be installed and working.
       - name: Install library
-        run: poetry install --no-interaction
+        run: |
+          source $VENV
+          poetry install --no-interaction
 
       # Run Tests.
-      #- run: poetry run pytest
+      #- run: |source $VENV
+      #poetry run pytest
 
       - name: Artifact creation
-        run: poetry build
+        run: |
+          source $VENV
+          poetry build
       - name: Save artifacts
         uses: actions/upload-artifact@v3
         with:
