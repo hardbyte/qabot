@@ -133,6 +133,7 @@ $ pip install -U qabot
 
 Then run the `qabot` command with either local files (`-f my-file.csv`) or `-w` to query wikidata.
 
+See all options with `qabot --help`
 
 ## Examples
 

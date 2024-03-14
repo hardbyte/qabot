@@ -23,11 +23,11 @@ def ask_file(query: str, filename: Optional[str], model_name=None, verbose=False
     return result["summary"]
 
 
-def ask_database(query: str, uri: str, model_name=None, verbose=False):
+def ask_database(query: str, uri: str, model_name=None, context=None, verbose=False):
     engine = create_duckdb()
     if model_name is None:
         model_name = Settings().QABOT_MODEL_NAME
     database_engine, executed_sql = import_into_duckdb_from_files(engine, [uri])
-    agent = Agent(database_engine=database_engine, model_name=model_name, verbose=verbose)
+    agent = Agent(database_engine=database_engine, model_name=model_name, prompt_context=context, verbose=verbose)
     result = agent(query)
     return result["summary"]
