@@ -5,6 +5,7 @@ import typer
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
+import httpx
 
 from qabot.config import Settings
 from qabot.functions.data_loader import import_into_duckdb_from_files, create_duckdb
@@ -31,6 +32,9 @@ def main(
     ),
     file: Optional[List[str]] = typer.Option(
         None, "-f", "--file", help="File or url containing data to load and query"
+    ),
+    prompt_context: Optional[str] = typer.Option(
+        None, "--context", help="File or url containing text data to use in the LLM prompt - e.g. describing the data"
     ),
     database_uri: Optional[str] = typer.Option(
         ":memory:",
@@ -68,6 +72,21 @@ def main(
         executed_sql = "\n".join(executed_sql)
         print(format_query(executed_sql))
 
+    # Load the optional context data
+    context_data = ""
+    if prompt_context is not None:
+        try:
+            if prompt_context.startswith("http://") or prompt_context.startswith("https://"):
+                response = httpx.get(prompt_context)
+                response.raise_for_status()  # Raises an HTTPStatusError if the response status code is 4XX/5XX
+                context_data = response.text
+            else:
+                with open(prompt_context, 'r', encoding='utf-8') as file:
+                    context_data = file.read()
+        except Exception as e:
+            raise RuntimeError(f"Failed to load context data from {prompt_context}: {e}")
+
+    
     with Progress(
         SpinnerColumn(),
         TextColumn("[green][progress.description]{task.description}"),
@@ -92,6 +111,7 @@ def main(
             clarification_callback=clarification
             if settings.QABOT_ENABLE_HUMAN_CLARIFICATION
             else None,
+            prompt_context=context_data
         )
 
         progress.remove_task(t2)

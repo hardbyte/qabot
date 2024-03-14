@@ -31,6 +31,7 @@ class Agent:
         self,
         database_engine=None,
         model_name: str = None,
+        prompt_context: str = None,
         allow_wikidata: bool = False,
         clarification_callback: Callable[[str], str] | None = None,
         verbose=False,
@@ -87,6 +88,7 @@ class Agent:
             ChatCompletionSystemMessageParam(
                 **{"role": "system", "content": system_prompt}
             ),
+
             # Force the assistant to get the current tables
             ChatCompletionAssistantMessageParam(
                 role="assistant",
@@ -110,6 +112,8 @@ class Agent:
                 }
             )
         )
+        if prompt_context is not None:
+            messages.append({"role": "user", "content": prompt_context})
 
         self.messages = messages
 

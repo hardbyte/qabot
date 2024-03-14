@@ -1,0 +1,105 @@
+# https://jacobian.org/til/github-actions-poetry/
+
+
+# Run this job on pushes to `main`, and for pull requests. If you don't specify
+# `branches: [main], then this actions runs _twice_ on pull requests, which is
+# annoying.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [ published ]
+
+jobs:
+  test:
+    name: Unit tests / ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        python: [ "3.10", "3.11" ]
+      fail-fast: true
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        id: setup-python
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Load cached Poetry installation
+        id: cached-poetry
+        uses: actions/cache@v3
+        with:
+          path: ~/.local  # the path depends on the OS
+          key: poetry-1.7.7-1  # increment to reset cache
+
+      # The key configuration value here is `virtualenvs-in-project: true`: this creates the
+      # venv as a `.venv` in your testing directory, which allows the next step to easily
+      # cache it.
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        #if: steps.cached-poetry.outputs.cache-hit != 'true'
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cache-deps
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      # Install dependencies. `--no-root` means "install all dependencies but not the project
+      # itself", which is what you want to avoid caching _your_ code. The `if` statement
+      # ensures this only runs on a cache miss.
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+        #if: steps.cache-deps.outputs.cache-hit != 'true'
+
+      # Now install _your_ project. This isn't necessary for many types of projects -- particularly
+      # things like Django apps don't need this. But it's a good idea since it fully-exercises the
+      # pyproject.toml and makes that if you add things like console-scripts at some point that
+      # they'll be installed and working.
+      - name: Install library
+        run: |
+          poetry install --no-interaction
+
+      # Run Tests.
+      #- run: |source $VENV
+      #poetry run pytest
+
+      - name: Artifact creation
+        run: |
+          poetry build
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: ./dist
+
+
+  upload_pypi:
+    name: Release to PyPi
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    # upload to PyPI only on release
+    if: github.event.release && github.event.action == 'published'
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.8.11
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
