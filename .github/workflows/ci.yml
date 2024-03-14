@@ -1,9 +1,3 @@
-# https://jacobian.org/til/github-actions-poetry/
-
-
-# Run this job on pushes to `main`, and for pull requests. If you don't specify
-# `branches: [main], then this actions runs _twice_ on pull requests, which is
-# annoying.
 
 on:
   push:
@@ -89,17 +83,18 @@ jobs:
   upload_pypi:
     name: Release to PyPi
     needs: [test]
+    permissions:
+      id-token: write
     runs-on: ubuntu-latest
 
     # upload to PyPI only on release
     if: github.event.release && github.event.action == 'published'
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
         with:
-          name: dist
+          name: release-dist
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.8.11
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
