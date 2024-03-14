@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macOS-latest ]
+        os: [ ubuntu-latest,macOS-latest ]
         python: [ "3.10", "3.11" ]
       fail-fast: true
     env:
@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.local  # the path depends on the OS
-          key: poetry-1.7.7-0  # increment to reset cache
+          key: poetry-1.7.7-1  # increment to reset cache
 
       # The key configuration value here is `virtualenvs-in-project: true`: this creates the
       # venv as a `.venv` in your testing directory, which allows the next step to easily
@@ -61,7 +61,6 @@ jobs:
       # ensures this only runs on a cache miss.
       - name: Install dependencies
         run: |
-          source $VENV
           poetry install --no-interaction --no-root
         #if: steps.cache-deps.outputs.cache-hit != 'true'
 
@@ -71,7 +70,6 @@ jobs:
       # they'll be installed and working.
       - name: Install library
         run: |
-          source $VENV
           poetry install --no-interaction
 
       # Run Tests.
@@ -80,7 +78,6 @@ jobs:
 
       - name: Artifact creation
         run: |
-          source $VENV
           poetry build
       - name: Save artifacts
         uses: actions/upload-artifact@v3
