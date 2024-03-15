@@ -76,7 +76,7 @@ jobs:
       - name: Save artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: dist
+          name: release-dist
           path: ./dist
 
 
