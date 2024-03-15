@@ -74,7 +74,7 @@ jobs:
         run: |
           poetry build
       - name: Save artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-dist
           path: ./dist
@@ -95,6 +95,7 @@ jobs:
         with:
           name: release-dist
           path: dist
+          merge-multiple: true
 
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
