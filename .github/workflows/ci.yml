@@ -76,7 +76,7 @@ jobs:
       - name: Save artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-${{ matrix.python }}
+          name: "${{ matrix.os }}-${{ matrix.python }}"
           path: ./dist
 
 

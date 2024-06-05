@@ -21,7 +21,7 @@ This program gives an LLM access to your local and network accessible files and 
 
 ```bash
 $ EXPORT OPENAI_API_KEY=sk-...
-$ EXPORT QABOT_MODEL_NAME=gpt-4
+$ EXPORT QABOT_MODEL_NAME=gpt-4o
 $ qabot -w -q "How many Hospitals are there located in Beijing"
 Query: How many Hospitals are there located in Beijing
 There are 39 hospitals located in Beijing.
@@ -194,7 +194,6 @@ Result:
 
 ## Ideas
 
-- optionally pass in a context file to pass directly to the LLM
 - streaming mode to output results as they come in
 - token limits and better reporting of costs
 - Supervisor agent - assess whether a query is "safe" to run, could ask for user confirmation to run anything that gets flagged.
