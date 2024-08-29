@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        python: [ "3.10", "3.11" ]
+        python: [ "3.11", "3.12" ]
       fail-fast: true
     env:
       OS: ${{ matrix.os }}
@@ -30,7 +30,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.local  # the path depends on the OS
-          key: poetry-1.7.7-1  # increment to reset cache
+          key: poetry-1.8.3-1  # increment to reset cache
 
       # The key configuration value here is `virtualenvs-in-project: true`: this creates the
       # venv as a `.venv` in your testing directory, which allows the next step to easily
@@ -39,7 +39,7 @@ jobs:
         uses: snok/install-poetry@v1
         #if: steps.cached-poetry.outputs.cache-hit != 'true'
         with:
-          version: 1.7.1
+          version: 1.8.3
           virtualenvs-create: true
           virtualenvs-in-project: true
 
