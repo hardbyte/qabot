@@ -8,7 +8,7 @@ from openai.types.chat import (
     ChatCompletionMessageParam, ChatCompletionMessageToolCallParam, ChatCompletionAssistantMessageParam,
 )
 from openai.types.chat.chat_completion_message_tool_call import Function
-
+from openai import RateLimitError
 from rich import print
 
 from qabot.formatting import format_robot, format_duck, format_user
@@ -159,7 +159,6 @@ class Agent:
             model=self.model_name,
             function_call=forced_function_call,
         )
-        # chat_response.response.raise_for_status()
 
         choice = chat_response.choices[0]
         message = choice.message
@@ -221,4 +220,3 @@ def execute_function_call(function, functions, verbose=False):
         return f"Error: function {function_name} does not exist"
 
     return results
-    # return ChatCompletionToolMessageParam(content=results, role='tool', tool_call_id=call_id)

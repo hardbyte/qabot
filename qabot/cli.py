@@ -123,13 +123,11 @@ def main(
 
             result = agent(query)
 
-            progress.remove_task(t)
-
-            # print("Total tokens", output_callback.total_tokens, f"approximate cost in USD: {openai_callback.total_cost}")
-
             # Stop the progress before outputting result and prompting for any more input
+            progress.remove_task(t)
             progress.stop()
             print()
+
 
             if verbose:
                 # Likely the users query was quite a ways back in the console history

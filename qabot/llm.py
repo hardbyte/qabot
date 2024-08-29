@@ -1,10 +1,15 @@
 import openai
 from openai.types.chat import ChatCompletionToolParam
+from openai import RateLimitError, AuthenticationError
 from rich import print
-from tenacity import retry, wait_random_exponential, stop_after_attempt
+from tenacity import retry, wait_random_exponential, stop_after_attempt, retry_if_not_exception_type
 
 
-@retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
+@retry(
+    retry=retry_if_not_exception_type((RateLimitError, AuthenticationError)),
+    wait=wait_random_exponential(multiplier=1, max=40),
+    stop=stop_after_attempt(3)
+)
 def chat_completion_request(
     messages, functions=None, function_call=None, model="gpt-3.5-turbo"
 ):
