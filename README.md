@@ -207,7 +207,7 @@ docker build -t qabot .
 To run the Docker image, use the following command:
 
 ```bash
-docker run --rm -e OPENAI_API_KEY=your_openai_api_key qabot -w -q "How many Hospitals are there located in Beijing"
+docker run --rm -e OPENAI_API_KEY=your_openai_api_key ghcr.io/hardbyte/qabot -w -q "How many Hospitals are there located in Beijing"
 ```
 
 Replace `your_openai_api_key` with your actual OpenAI API key.
