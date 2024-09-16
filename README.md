@@ -190,7 +190,27 @@ Result:
 264308334 confirmed cases
 ```
 
+## Docker Usage
 
+You can build and run the Docker image for `qabot` using the following instructions:
+
+### Building the Docker Image
+
+To build the Docker image, run the following command in the root directory of the repository:
+
+```bash
+docker build -t qabot .
+```
+
+### Running the Docker Image
+
+To run the Docker image, use the following command:
+
+```bash
+docker run --rm -e OPENAI_API_KEY=your_openai_api_key ghcr.io/hardbyte/qabot -w -q "How many Hospitals are there located in Beijing"
+```
+
+Replace `your_openai_api_key` with your actual OpenAI API key.
 
 ## Ideas
 
