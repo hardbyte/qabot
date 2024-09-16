@@ -7,7 +7,7 @@ Can query local and remote files (CSV, parquet)
 
 ## Installation
 
-Install with [pipx](https://pypa.github.io/pipx/installation/):
+Install with [pipx](https://pypa.github.io/pipx/installation/), `pip` etc:
 
 ```
 pipx install qabot
@@ -214,7 +214,7 @@ Replace `your_openai_api_key` with your actual OpenAI API key.
 
 ## Ideas
 
-- streaming mode to output results as they come in
+- Streaming mode to output results as they come in
 - token limits and better reporting of costs
 - Supervisor agent - assess whether a query is "safe" to run, could ask for user confirmation to run anything that gets flagged.
 - Often we can zero-shot the question and get a single query out - perhaps we try this before the MKL chain
@@ -222,6 +222,5 @@ Replace `your_openai_api_key` with your actual OpenAI API key.
 - Generate and pass back assumptions made to the user
 - Add an optional "clarify" tool to the chain that asks the user to clarify the question
 - Create a query checker tool that checks if the query looks valid and/or safe
-- Inject AWS credentials into duckdb so we can access private resources in S3
-
-- Automatic publishing to pypi. Look at https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/
+- Inject AWS credentials into duckdb for access to private resources in S3
+- Automatic publishing to pypi e.g. using [trusted publishers](https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/)
