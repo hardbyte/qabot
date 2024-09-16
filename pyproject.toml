@@ -1,31 +1,35 @@
-[tool.poetry]
+[project]
 name = "qabot"
 version = "0.5.9"
-license = "Apache-2.0"
 description = "Query local or remote data files with natural language queries powered by OpenAI and DuckDB."
-authors = ["Brian Thorne <brian@hardbyte.nz>"]
+authors = [{name = "Brian Thorne", email = "brian@hardbyte.nz" }]
 readme = "README.md"
-packages = [{include = "qabot"}]
+dependencies = [
+    "openai >=1.40,<2.0",
+    "typer >=0.12.5,<0.13.0",
+    "rich >=13.8,<14.0",
+    "httpx >0.27,<1.0",
+    "tenacity >=9.0,<10.0",
+    "pydantic >=2.5.3,<3.0",
+    "pydantic-settings >=2.2,<3.0",
+    "appdirs >=1.4.4,<2.0",
+    "duckdb >=1.0,<2.0"
+]
 
-[tool.poetry.scripts]
+requires-python = ">=3.11"
+
+[tool.uv]
+# Any UV-specific configurations can go here if needed later
+
+[project.scripts]
 qabot = "qabot.cli:run"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["qabot"]
+exclude = ["data", "experiments"]
 
-[tool.poetry.dependencies]
-python = ">=3.11"
-openai = "^1.40"
-typer = "^0.12.5"
-rich = "^13.8"
-httpx = ">0.27, <1.0"
-tenacity = "^9.0"
-pydantic = ">2.5.3, <3.0"
-pydantic-settings = "^2.2"
-appdirs = "^1.4.4"
-duckdb = "^1.0"
-
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.1.4"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
