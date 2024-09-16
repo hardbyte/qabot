@@ -312,7 +312,7 @@ wheels = [
 
 [[package]]
 name = "qabot"
-version = "0.5.9"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
