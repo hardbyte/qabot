@@ -7,25 +7,40 @@ Can query local and remote files (CSV, parquet)
 
 ## Installation
 
-Install with [pipx](https://pypa.github.io/pipx/installation/), `pip` etc:
+Install with `uv`, `pipx`, `pip` etc:
 
 ```
-pipx install qabot
+uv tool install qabot
 ```
 
 ## Security Risks
 
-This program gives an LLM access to your local and network accessible files and allows it to execute arbitrary SQL queries, see `Security.md` for more information.
+This program gives an LLM access to your local and network accessible files and allows it to execute arbitrary SQL 
+queries in a DuckDB database, see [Security](Security.md) for more information.
 
 ## Command Line Usage
 
 ```bash
 $ EXPORT OPENAI_API_KEY=sk-...
-$ EXPORT QABOT_MODEL_NAME=gpt-4o
-$ qabot -w -q "How many Hospitals are there located in Beijing"
-Query: How many Hospitals are there located in Beijing
-There are 39 hospitals located in Beijing.
-Total tokens 1749 approximate cost in USD: 0.05562
+$ qabot -f data/titanic.csv -q "How many passengers were there by ticket class and gender?"
+ 🤖 There were a total of 891 passengers, categorized by ticket class and gender.
+
+
+The distribution of passengers by ticket class and gender is as follows:
+
+| Ticket Class | Gender | Passenger Count |
+|--------------|--------|------------------|
+| 1            | female | 94               |
+| 1            | male   | 122              |
+| 2            | female | 76               |
+| 2            | male   | 108              |
+| 3            | female | 144              |
+| 3            | male   | 347              |
+
+This was computed by grouping the data in the 'titanic' table by 'Pclass' and 'Sex' and counting the number of passengers in each
+category.
+
+SELECT Pclass, Sex, COUNT(*) AS PassengerCount FROM titanic GROUP BY Pclass, Sex ORDER BY Pclass, Sex;
 ```
 
 ## Python Usage
@@ -48,7 +63,7 @@ There are 6,225 product images.
 
 ## Features
 
-Works on local CSV and Excel files:
+Works on local CSV, sqlite and Excel files:
 
 ![](.github/local_csv_query.png)
 
@@ -61,8 +76,6 @@ $ qabot -f https://duckdb.org/data/holdings.csv -q "Tell me how many Apple holdi
 create view 'holdings' as select * from 'https://duckdb.org/data/holdings.csv';
  🚀 Sending query to LLM
  🧑 Tell me how many Apple holdings I currently have
-
-
  🤖 You currently have 32.23 shares of Apple.
 
 
@@ -73,7 +86,36 @@ SELECT SUM(shares) as total_shares FROM holdings WHERE ticker = 'APPL'
 
 Even on (public) data stored in S3:
 
-![](.github/external_s3_data.png)
+```
+$ qabot -f s3://covid19-lake/enigma-jhu-timeseries/csv/jhu_csse_covid_19_timeseries_merged.csv -q "how many confirmed cases of covid are there by month?" -v
+
+🤖 Monthly confirmed cases from January to May 2020: ranging from 7 in January, 24 in February, 188,123 in March, 1,069,172 in April and 1,745,582 in May.
+```
+
+<details>
+  <summary>Extra Details (from qabot)</summary>
+  
+  The above figures were computed by aggregating the dataset on a per-entity basis (using a unique identifier `uid`), selecting the last available (maximum) date in each month, and summing the confirmed case counts. Here is the SQL query that was used:
+  
+  ```sql
+  WITH monthly_data AS (
+      SELECT uid, strftime('%Y-%m', date) AS month, MAX(date) AS max_date
+      FROM memory.main.jhu_csse_covid_19_timeseries_merged
+      GROUP BY uid, strftime('%Y-%m', date)
+  )
+  SELECT m.month, SUM(j.confirmed) AS confirmed
+  FROM monthly_data m
+  JOIN memory.main.jhu_csse_covid_19_timeseries_merged j
+    ON m.uid = j.uid AND m.max_date = j.date
+  GROUP BY m.month
+  ORDER BY m.month;
+  ```
+
+  This method ensures that for each month, the cumulative confirmed case count is captured at the end of the month based on the latest data available for each entity (uid).
+</details>
+
+
+### Load data within a session
 
 You can even load data from disk/URL via the natural language query:
 
@@ -82,40 +124,15 @@ You can even load data from disk/URL via the natural language query:
 > was the average fare for surviving male passengers?
 
 ```
-~/Dev/qabot> qabot -q "Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the average fare for surviving male passengers?" -v
  🦆 Creating local DuckDB database...
- 🤖 Using model: gpt-4-1106-preview. Max LLM/function iterations before answer 20
  🚀 Sending query to LLM
- 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the    
-average fare for surviving male passengers?
- 🤖 load_data
-{'files': ['data/titanic.csv']}
- 🦆 Imported with SQL:
-["create table 'titanic' as select * from 'data/titanic.csv';"]
- 🤖 execute_sql
-{'query': "CREATE VIEW male_passengers AS SELECT * FROM titanic WHERE Sex = 'male';"}
- 🦆 No output
- 🤖 execute_sql
-{'query': 'SELECT AVG(Fare) as average_fare FROM male_passengers WHERE Survived = 1;'}
- 🦆 average_fare
-40.82148440366974
- 🦆 {"summary": "The average fare for surviving male passengers was approximately $40.82.", "detail": "The average fare for surviving male passengers was
-calculated by creating a view called `male_passengers` to filter only the male passengers from the `titanic` table, and then running a query to calculate the      
-average fare for male passengers who survived. The calculated average fare is approximately $40.82.", "query": "CREATE VIEW male_passengers AS SELECT * FROM       
-titanic WHERE Sex = 'male';\nSELECT AVG(Fare) as average_fare FROM male_passengers WHERE Survived = 1;"}
+ 🤖 The average fare for surviving male passengers is approximately $40.82.
 
 
- 🚀 Question:
- 🧑 Load the file 'data/titanic.csv' into a table called 'raw_passengers'. Create a view of the raw passengers table for just the male passengers. What was the    
-average fare for surviving male passengers?
- 🤖 The average fare for surviving male passengers was approximately $40.82.
+I created a table called `raw_passengers` from the Titanic dataset loaded from 'data/titanic.csv'. Then, I created a view called `male_passengers` that
+includes only male passengers. Finally, I calculated the average fare for surviving male passengers, which is approximately $40.82.
 
-
-The average fare for surviving male passengers was calculated by creating a view called `male_passengers` to filter only the male passengers from the `titanic`    
-table, and then running a query to calculate the average fare for male passengers who survived. The calculated average fare is approximately $40.82.
-
-CREATE VIEW male_passengers AS SELECT * FROM titanic WHERE Sex = 'male';
-SELECT AVG(Fare) as average_fare FROM male_passengers WHERE Survived = 1;
+SELECT AVG(Fare) AS average_fare_surviving_male FROM male_passengers WHERE Survived = 1;
 
 ```
 
@@ -182,7 +199,8 @@ This representation allows us to observe that in all classes, a greater number o
 
 ## Query WikiData
 
-Use the `-w` flag to query wikidata. For best results use a function calling chat model.
+Use the `-w` flag to query wikidata.
+
 ```bash
 $ qabot -w -q "How many Hospitals are there located in Beijing"
 ```
@@ -190,7 +208,7 @@ $ qabot -w -q "How many Hospitals are there located in Beijing"
 ## Intermediate steps and database queries
 
 Use the `-v` flag to see the intermediate steps and database queries.
-Sometimes it takes a long route to get to the answer, but it's interesting to see how it gets there.
+Sometimes it takes a long route to get to the answer, but it's often interesting to see how it gets there.
 
 ```
 qabot -f data/titanic.csv -q "how many passengers survived by gender?" -v
@@ -226,10 +244,13 @@ docker build -t qabot .
 To run the Docker image, use the following command:
 
 ```bash
-docker run --rm -e OPENAI_API_KEY=your_openai_api_key ghcr.io/hardbyte/qabot -w -q "How many Hospitals are there located in Beijing"
+docker run --rm \
+  -e OPENAI_API_KEY=<your_openai_api_key> \
+  -v ./data:/opt
+  ghcr.io/hardbyte/qabot -f /opt/titanic.csv -q "What ratio of passengers were under 30?"
 ```
 
-Replace `your_openai_api_key` with your actual OpenAI API key.
+Replace the mount path to your actual data along with replacing `your_openai_api_key`.
 
 ## Ideas
 

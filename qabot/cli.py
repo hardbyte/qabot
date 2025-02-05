@@ -53,7 +53,7 @@ def main(
     Query a database or Wikidata using a simple natural language query.
 
     Example:
-        qabot -q "What is the average length of song by artist 'The Beatles'?" -f data/chinook.sqlite
+        qabot -q "What is the average length of Queen songs?" -f data/Chinook.sqlite
     """
 
     settings = Settings()

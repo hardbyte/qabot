@@ -80,8 +80,11 @@ def import_into_duckdb_from_files(
                 )
                 continue
             #duckdb_connection.execute(f"CALL sqlite_attach('{file_path}')")
-            duckdb_connection.execute(f"ATTACH '{file_path}' as sqlite_db (TYPE SQLITE);")
+            query = f"ATTACH '{file_path}' as sqlite_db (TYPE SQLITE);"
+            duckdb_connection.execute(query)
             _set_search_path(duckdb_connection)
+
+            executed_sql.append(query)
         else:
             executed_sql.append(
                 load_external_data_into_db(duckdb_connection, file_path)
