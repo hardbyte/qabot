@@ -122,13 +122,14 @@ SELECT AVG(Fare) as average_fare FROM male_passengers WHERE Survived = 1;
 ## Quickstart
 
 You need to set the `OPENAI_API_KEY` environment variable to your OpenAI API key, 
-which you can get from [here](https://platform.openai.com/account/api-keys).
+which you can get from [here](https://platform.openai.com/account/api-keys). Other OpenAI compatible
+APIs can also be used by setting `OPENAI_BASE_URL`.
 
-Install the `qabot` command line tool using pip/pipx:
+Install the `qabot` command line tool using uv/pip/pipx:
 
 
 ```bash
-$ pip install -U qabot
+$ uv tool install qabot
 ```
 
 Then run the `qabot` command with either local files (`-f my-file.csv`) or `-w` to query wikidata.
@@ -156,15 +157,33 @@ Query: what was the largest family who did not survive?
 Result:
 The largest family who did not survive was the Sage family, with 8 members.
 
- 🚀 any further questions? [y/n] (y): n
+ 🚀 any further questions? [y/n] (y): Show the survival rate by gender, and ticket class shown as an ASCII graph
+
+Here’s the survival count represented as a horizontal bar graph grouped by ticket class and gender:
+
+
+Class 1:
+Females  | ██████████████████████████████████████████ (91)
+Males    | ██████████████ (45)
+
+Class 2:
+Females  | ██████████████████████████ (70)
+Males    | ██████████ (17)
+
+Class 3:
+Females  | ██████████████████████████████ (72)
+Males    | ██████████████ (47)
+
+
+This representation allows us to observe that in all classes, a greater number of female passengers survived compared to male passengers, and also highlights the number of survivors is notably higher in the first class compared to the other classes.
+
 ```
 
 
 ## Query WikiData
 
-Use the `-w` flag to query wikidata. For best results use a `gpt-4` or similar model.
+Use the `-w` flag to query wikidata. For best results use a function calling chat model.
 ```bash
-$ EXPORT QABOT_MODEL_NAME=gpt-4
 $ qabot -w -q "How many Hospitals are there located in Beijing"
 ```
 

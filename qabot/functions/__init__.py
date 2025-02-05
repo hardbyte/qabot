@@ -83,11 +83,12 @@ def get_function_specifications(allow_wikidata: bool = True):
                     },
                     "detail": {
                         "type": "string",
-                        "description": "detailed answer to the user's question including how it was computed. Markdown is acceptable",
+                        "description": """detailed answer to the user's question including how it was computed. 
+                        Markdown is acceptable including code snippets and mermaid diagrams.""",
                     },
                     "query": {
                         "type": "string",
-                        "description": "If the user can re-run the query, include it here",
+                        "description": "If the query is reproducible, include it here.",
                     },
                     # "value": {
                     #     "type": "any",
@@ -104,8 +105,8 @@ def get_function_specifications(allow_wikidata: bool = True):
             {
                 "name": "wikidata",
                 "description": textwrap.dedent(
-                    """Useful for when you need specific data from Wikidata.
-                    Input to this tool is a single correct SPARQL statement for Wikidata. Limit all requests to 10 or fewer rows. 
+                    """Source data from Wikidata if not available locally.
+                    Input to this tool is a single SPARQL statement for Wikidata. Limit all requests to 50 or fewer rows. 
 
                     Output is the raw response in json. If the query is not correct, an error message will be returned. 
                     If an error is returned, you may rewrite the query and try again. If you are unsure about the response

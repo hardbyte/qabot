@@ -1,6 +1,6 @@
 import openai
 from openai.types.chat import ChatCompletionToolParam
-from openai import RateLimitError, AuthenticationError
+from openai import RateLimitError, AuthenticationError, OpenAI
 from rich import print
 from tenacity import retry, wait_random_exponential, stop_after_attempt, retry_if_not_exception_type
 
@@ -11,7 +11,8 @@ from tenacity import retry, wait_random_exponential, stop_after_attempt, retry_i
     stop=stop_after_attempt(3)
 )
 def chat_completion_request(
-    messages, functions=None, function_call=None, model="gpt-3.5-turbo"
+    openai_client: OpenAI,
+    messages, functions=None, function_call=None, model="gpt-4o-mini"
 ):
     call_data = {"model": model, "messages": messages}
 
@@ -23,7 +24,7 @@ def chat_completion_request(
     if function_call is not None:
         call_data["function_call"] = function_call
     try:
-        return openai.chat.completions.create(**call_data)
+        return openai_client.chat.completions.create(**call_data)
     except Exception as e:
         print("Unable to generate ChatCompletion response")
         print(f"Exception: {e}")

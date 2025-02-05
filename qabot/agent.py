@@ -8,7 +8,7 @@ from openai.types.chat import (
     ChatCompletionMessageParam, ChatCompletionMessageToolCallParam, ChatCompletionAssistantMessageParam,
 )
 from openai.types.chat.chat_completion_message_tool_call import Function
-from openai import RateLimitError
+from openai import RateLimitError, OpenAI
 from rich import print
 
 from qabot.formatting import format_robot, format_duck, format_user
@@ -33,9 +33,11 @@ class Agent:
         model_name: str = None,
         prompt_context: str = None,
         allow_wikidata: bool = False,
+        terminate_session_callback: Callable = None,
         clarification_callback: Callable[[str], str] | None = None,
         verbose=False,
         max_iterations: int = 20,
+        openai_client: OpenAI = None,
     ):
         """
         Create a new Agent.
@@ -51,6 +53,7 @@ class Agent:
                 )
             )
         self.functions = {
+            "terminate_session": terminate_session_callback,
             "clarify": clarification_callback,
             "wikidata": lambda query: WikiDataQueryTool()._run(query),
             "execute_sql": lambda query: run_sql_catch_error(database_engine, query),
@@ -78,6 +81,27 @@ class Agent:
                             "clarification": {
                                 "type": "string",
                                 "description": "A question or prompt for the user",
+                            },
+                        },
+                    },
+                }
+            )
+
+        if terminate_session_callback is not None:
+            self.function_specifications.append(
+                {
+                    "name": "terminate_session",
+                    "description": textwrap.dedent(
+                        """Indicate that the user has requested the session to be terminated.
+                        Prefer to clarify unclear requests or requests you cannot address rather than terminating a session immediately.
+                        """
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "message": {
+                                "type": "string",
+                                "description": "The final short message - usually saying goodbye",
                             },
                         },
                     },
@@ -117,6 +141,8 @@ class Agent:
 
         self.messages = messages
 
+        self.openai_client = openai_client or OpenAI()
+
     def __call__(self, user_input):
         """
         Pass new input from the user to the LLM and return the response.
@@ -154,6 +180,7 @@ class Agent:
         function_call_results = None
 
         chat_response = chat_completion_request(
+            self.openai_client,
             self.messages,
             functions=self.function_specifications,
             model=self.model_name,
@@ -211,6 +238,8 @@ def execute_function_call(function, functions, verbose=False):
                 print(format_robot(function_name))
         try:
             results = f(**kwargs)
+        except SystemExit as e:
+            raise SystemExit(e)
         except Exception as e:
             results = f"Error: Calling function {function_name} raised an exception.\n\n{str(e)}"
     elif function_name == "answer":

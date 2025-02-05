@@ -1,6 +1,6 @@
 from typing import List, Optional
 import warnings
-
+from openai import OpenAI
 import typer
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -60,9 +60,16 @@ def main(
     executed_sql = ""
     # If files are given load data into local DuckDB
     print(format_duck("Creating local DuckDB database..."))
+    if enable_wikidata:
+        print(format_duck("Enabling Wikidata..."))
     database_engine = create_duckdb(database_uri)
 
-    if len(file) > 0:
+    openai_client = OpenAI(
+        api_key=settings.OPENAI_API_KEY,
+        base_url=settings.OPENAI_BASE_URL,
+    )
+
+    if file and len(file) > 0:
         if isinstance(file, str):
             file = [file]
         print(format_duck("Loading data..."))
@@ -103,15 +110,22 @@ def main(
                 + format_robot(clarification)
             )
 
+        def terminate_session(message: str):
+            progress.stop()
+            print(format_robot(message))
+            raise SystemExit
+
         agent = Agent(
             database_engine=database_engine,
             verbose=verbose,
             model_name=settings.QABOT_MODEL_NAME,
             allow_wikidata=settings.QABOT_ENABLE_WIKIDATA and enable_wikidata,
+            terminate_session_callback=terminate_session,
             clarification_callback=clarification
             if settings.QABOT_ENABLE_HUMAN_CLARIFICATION
             else None,
-            prompt_context=context_data
+            prompt_context=context_data,
+            openai_client=openai_client,
         )
 
         progress.remove_task(t2)
