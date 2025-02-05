@@ -43,6 +43,13 @@ category.
 SELECT Pclass, Sex, COUNT(*) AS PassengerCount FROM titanic GROUP BY Pclass, Sex ORDER BY Pclass, Sex;
 ```
 
+## LLM Providers
+
+qabot works with any OpenAI compatible api including deepseek. Simple set the base URL:
+```
+export OPENAI_BASE_URL=https://api.deepseek.com
+```
+
 ## Python Usage
 
 ```python
