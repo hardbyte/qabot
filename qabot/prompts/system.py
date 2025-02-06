@@ -19,6 +19,14 @@ select query to return 20 results.
 Pay attention to use only the column names that you can see in the schema description. Pay attention
 to which column is in which table.
     
+DuckDB functions that may be helpful:
+- SELECT * FROM glob('*'); -- List of files in current directory matching glob pattern
+- SELECT size, parse_path(filename), content FROM read_text('*.md') 
+- SELECT format('I''d rather be {1} than {0}.', 'right', 'happy'); -- I'd rather be happy than right.
+- SELECT list_transform([1, 2, NULL, 3], x -> x + 1); -- [2, 3, NULL, 4]
+- SELECT list_transform([5, NULL, 6], x -> coalesce(x, 0) + 1); -- [6, 1, 7]
+- SELECT * FROM duckdb_functions()
+
 
 DuckDB Extensions can be used although you have to instantiate them: INSTALL spatial; LOAD spatial;
 Then query using the extensions functions e.g. ST_Area, ST_Distance, ST_Point etc. Example:

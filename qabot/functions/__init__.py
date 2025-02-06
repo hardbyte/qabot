@@ -8,12 +8,6 @@ def get_function_specifications(allow_wikidata: bool = True):
             "description": """Run SQL queries with a local DuckDB database engine. Use for accessing data, COPYing to/from files or any math computation. 
             For best results, pass in the fully qualified name: 'table_catalog.table_schema.table_name'
             
-            DuckDB functions that may be helpful:
-            - SELECT size, parse_path(filename), content FROM read_text('*.md') 
-            - SELECT format('I''d rather be {1} than {0}.', 'right', 'happy'); -- I'd rather be happy than right.
-            - SELECT list_transform([1, 2, NULL, 3], x -> x + 1); -- [2, 3, NULL, 4]
-            - SELECT list_transform([5, NULL, 6], x -> coalesce(x, 0) + 1); -- [6, 1, 7]
-            - SELECT * FROM duckdb_functions()
             
             """,
             "parameters": {
