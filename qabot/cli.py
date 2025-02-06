@@ -201,13 +201,14 @@ def main(
                 print(format_rocket("Question:"))
                 print(format_user(query))
 
-            print(format_robot(result["summary"]))
-            print()
-            if "detail" in result:
-                print(f"[{ROBOT_COLOR}]\n{result['detail']}\n")
+            if result:
+                print(format_robot(result["summary"]))
+                print()
+                if "detail" in result:
+                    print(f"[{ROBOT_COLOR}]\n{result['detail']}\n")
 
-            if "query" in result:
-                print(format_query(result["query"]))
+                if "query" in result:
+                    print(format_query(result["query"]))
 
             print()
             query = Prompt.ask(FOLLOW_UP_PROMPT)

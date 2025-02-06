@@ -13,61 +13,6 @@ Install with `uv`, `pipx`, `pip` etc:
 uv tool install qabot
 ```
 
-## Security Risks
-
-This program gives an LLM access to your local and network accessible files and allows it to execute arbitrary SQL 
-queries in a DuckDB database, see [Security](Security.md) for more information.
-
-## Command Line Usage
-
-```bash
-$ EXPORT OPENAI_API_KEY=sk-...
-$ qabot -f data/titanic.csv -q "How many passengers were there by ticket class and gender?"
- 🤖 There were a total of 891 passengers, categorized by ticket class and gender.
-
-
-The distribution of passengers by ticket class and gender is as follows:
-
-| Ticket Class | Gender | Passenger Count |
-|--------------|--------|------------------|
-| 1            | female | 94               |
-| 1            | male   | 122              |
-| 2            | female | 76               |
-| 2            | male   | 108              |
-| 3            | female | 144              |
-| 3            | male   | 347              |
-
-This was computed by grouping the data in the 'titanic' table by 'Pclass' and 'Sex' and counting the number of passengers in each
-category.
-
-SELECT Pclass, Sex, COUNT(*) AS PassengerCount FROM titanic GROUP BY Pclass, Sex ORDER BY Pclass, Sex;
-```
-
-## LLM Providers
-
-qabot works with any OpenAI compatible api including deepseek. Simple set the base URL:
-```
-export OPENAI_BASE_URL=https://api.deepseek.com
-```
-
-## Python Usage
-
-```python
-from qabot import ask_wikidata, ask_file, ask_database
-
-print(ask_wikidata("How many hospitals are there in New Zealand?"))
-print(ask_file("How many men were aboard the titanic?", 'data/titanic.csv'))
-print(ask_database("How many product images are there?", 'postgresql://user:password@localhost:5432/dbname'))
-```
-
-Output:
-```text
-There are 54 hospitals in New Zealand.
-There were 577 male passengers on the Titanic.
-There are 6,225 product images.
-```
-
-
 ## Features
 
 Works on local CSV, sqlite and Excel files:
@@ -156,35 +101,58 @@ Install the `qabot` command line tool using uv/pip/pipx:
 $ uv tool install qabot
 ```
 
-Then run the `qabot` command with either local files (`-f my-file.csv`) or `-w` to query wikidata.
+Then run the `qabot` command with optional files (`-f my-file.csv`) and an initial query `-q "How many..."`.
 
 See all options with `qabot --help`
+
+## Security Risks
+
+This program gives an LLM access to your local and network accessible files and allows it to execute arbitrary SQL 
+queries in a DuckDB database, see [Security](Security.md) for more information.
+
+
+## LLM Providers
+
+qabot works with any OpenAI compatible api including Ollama and deepseek. Simple set the base URL:
+```
+export OPENAI_BASE_URL=https://api.deepseek.com
+```
+
+Or Ollama:
+```
+OPENAI_BASE_URL=http://localhost:11434/v1/ 
+QABOT_MODEL_NAME=qwen2.5-coder:7b 
+QABOT_PLANNING_MODEL_NAME=deepseek-r1:14b 
+```
+
+## Python API
+
+```python
+from qabot import ask_wikidata, ask_file, ask_database
+
+print(ask_wikidata("How many hospitals are there in New Zealand?"))
+print(ask_file("How many men were aboard the titanic?", 'data/titanic.csv'))
+print(ask_database("How many product images are there?", 'postgresql://user:password@localhost:5432/dbname'))
+```
+
+Output:
+```text
+There are 54 hospitals in New Zealand.
+There were 577 male passengers on the Titanic.
+There are 6,225 product images.
+```
+
 
 ## Examples
 
 ### Local CSV file/s
 
 ```bash
-$ qabot -q "how many passengers survived by gender?" -f data/titanic.csv
+$ qabot -q "Show the survival rate by gender, and ticket class shown as an ASCII graph" -f data/titanic.csv
 🦆 Loading data from files...
 Loading data/titanic.csv into table titanic...
 
-Query: how many passengers survived by gender?
-Result:
-There were 233 female passengers and 109 male passengers who survived.
-
-
- 🚀 any further questions? [y/n] (y): y
-
- 🚀 Query: what was the largest family who did not survive? 
-Query: what was the largest family who did not survive?
-Result:
-The largest family who did not survive was the Sage family, with 8 members.
-
- 🚀 any further questions? [y/n] (y): Show the survival rate by gender, and ticket class shown as an ASCII graph
-
 Here’s the survival count represented as a horizontal bar graph grouped by ticket class and gender:
-
 
 Class 1:
 Females  | ██████████████████████████████████████████ (91)
@@ -200,7 +168,6 @@ Males    | ██████████████ (47)
 
 
 This representation allows us to observe that in all classes, a greater number of female passengers survived compared to male passengers, and also highlights the number of survivors is notably higher in the first class compared to the other classes.
-
 ```
 
 
@@ -217,10 +184,6 @@ $ qabot -w -q "How many Hospitals are there located in Beijing"
 Use the `-v` flag to see the intermediate steps and database queries.
 Sometimes it takes a long route to get to the answer, but it's often interesting to see how it gets there.
 
-```
-qabot -f data/titanic.csv -q "how many passengers survived by gender?" -v
-```
-
 ## Data accessed via http/s3
 
 Use the `-f <url>` flag to load data from a url, e.g. a csv file on s3:
@@ -236,19 +199,7 @@ Result:
 
 ## Docker Usage
 
-You can build and run the Docker image for `qabot` using the following instructions:
-
-### Building the Docker Image
-
-To build the Docker image, run the following command in the root directory of the repository:
-
-```bash
-docker build -t qabot .
-```
-
-### Running the Docker Image
-
-To run the Docker image, use the following command:
+You can run `qabot` via Docker:
 
 ```bash
 docker run --rm \
@@ -260,7 +211,7 @@ docker run --rm \
 Replace the mount path to your actual data along with replacing `your_openai_api_key`.
 
 ## Ideas
-
+- G-Sheets via https://github.com/evidence-dev/duckdb_gsheets
 - Streaming mode to output results as they come in
 - token limits and better reporting of costs
 - Supervisor agent - assess whether a query is "safe" to run, could ask for user confirmation to run anything that gets flagged.
