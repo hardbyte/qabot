@@ -1,7 +1,7 @@
 import textwrap
 
 
-def get_function_specifications(allow_wikidata: bool = True):
+def get_function_specifications(allow_wikidata: bool = True, allow_research: bool = True):
     function_specifications = [
         {
             "name": "execute_sql",
@@ -86,7 +86,7 @@ def get_function_specifications(allow_wikidata: bool = True):
                     "detail": {
                         "type": "string",
                         "description": """detailed answer to the user's question including how it was computed. 
-                        Markdown is acceptable including code snippets and mermaid diagrams.""",
+                        Markdown is acceptable including code snippets, ascii graphs diagrams.""",
                     },
                     "query": {
                         "type": "string",
@@ -121,6 +121,30 @@ def get_function_specifications(allow_wikidata: bool = True):
                         "query": {
                             "type": "string",
                             "description": "A valid SPARQL query for Wikidata",
+                        },
+                    },
+                },
+            }
+        )
+
+
+    if allow_research:
+        function_specifications.append(
+            {
+                "name": "research",
+                "description": textwrap.dedent(
+                    """Planning review, or outsource considering a question regarding how to solve a problem in depth.
+                    Consult an expert! Provide full context and details.
+                    
+                    Example: What is an efficient way to implement Monte Carlo simulations in DuckDB for computing PI with 100 million points?
+                    """
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "A plan to consider, or another question that Qabot would like assistance with",
                         },
                     },
                 },

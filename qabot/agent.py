@@ -1,7 +1,7 @@
 import json
 import textwrap
 from typing import Callable, List
-
+from pydantic import BaseModel
 from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionToolMessageParam,
@@ -11,6 +11,7 @@ from openai.types.chat.chat_completion_message_tool_call import Function
 from openai import RateLimitError, OpenAI
 from rich import print
 
+from qabot.config import AgentModelConfig
 from qabot.formatting import format_robot, format_duck, format_user
 from qabot.functions import get_function_specifications
 from qabot.functions.data_loader import import_into_duckdb_from_files
@@ -18,7 +19,7 @@ from qabot.functions.describe_duckdb_table import describe_table_or_view
 from qabot.functions.duckdb_query import run_sql_catch_error
 from qabot.functions.wikidata import WikiDataQueryTool
 from qabot.llm import chat_completion_request
-from qabot.prompts.system import system_prompt
+from qabot.prompts.system import system_prompt, research_prompt
 
 
 class Agent:
@@ -28,28 +29,29 @@ class Agent:
     """
 
     def __init__(
-        self,
-        database_engine=None,
-        model_name: str = None,
-        prompt_context: str = None,
-        allow_wikidata: bool = False,
-        terminate_session_callback: Callable = None,
-        clarification_callback: Callable[[str], str] | None = None,
-        verbose=False,
-        max_iterations: int = 20,
-        openai_client: OpenAI = None,
+            self,
+            database_engine=None,
+            models: AgentModelConfig = None,
+            prompt_context: str = None,
+            allow_wikidata: bool = False,
+            terminate_session_callback: Callable = None,
+            clarification_callback: Callable[[str], str] | None = None,
+            verbose=False,
+            max_iterations: int = 20,
+            openai_client: OpenAI = None,
     ):
         """
         Create a new Agent.
         """
         self.max_iterations = max_iterations
-        self.model_name = model_name
+        self.model_name = models.default_model_name
+        self.planning_model_name = models.planning_model_name
         self.db = database_engine
         self.verbose = verbose
         if verbose:
             print(
                 format_robot(
-                    f"Using model: {model_name}. Max LLM/function iterations before answer {max_iterations}"
+                    f"Default model: {models.default_model_name}, Thinking model: {models.planning_model_name}. Max LLM/function iterations before answer {max_iterations}"
                 )
             )
         self.functions = {
@@ -57,14 +59,16 @@ class Agent:
             "clarify": clarification_callback,
             "wikidata": lambda query: WikiDataQueryTool()._run(query),
             "execute_sql": lambda query: run_sql_catch_error(database_engine, query),
-            "show_tables": lambda: run_sql_catch_error(database_engine, "select table_catalog, table_schema, table_name from system.information_schema.tables where table_schema != 'information_schema';"),
+            "show_tables": lambda: run_sql_catch_error(database_engine,
+                                                       "select table_catalog, table_schema, table_name from system.information_schema.tables where table_schema != 'information_schema';"),
             "describe_table": lambda table, **kwargs: describe_table_or_view(
                 database_engine, table, **kwargs
             ),
+            "research": self.research_call,
             "load_data": lambda files: "Imported with SQL:\n"
-            + str(import_into_duckdb_from_files(database_engine, files)[1]),
+                                       + str(import_into_duckdb_from_files(database_engine, files)[1]),
         }
-        self.function_specifications = get_function_specifications(allow_wikidata)
+        self.function_specifications = get_function_specifications(allow_wikidata, allow_research=True)
 
         if clarification_callback is not None:
             self.function_specifications.append(
@@ -217,6 +221,35 @@ class Agent:
             print(format_robot(message.content))
         return is_final_answer, function_call_results
 
+    def research_call(self, query):
+        print("Research Time")
+        # Now we use the planning LLM model
+        chat_response = chat_completion_request(
+            self.openai_client,
+            messages=[
+                         ChatCompletionSystemMessageParam(
+                             **{"role": "system", "content": research_prompt}
+                         ),
+                     ] +
+                     [{"role": "system", "content": str(m)} for m in self.messages[-10:]]
+                     +
+                     [
+                         ChatCompletionSystemMessageParam(
+                             **{"role": "system", "content": "Question follows:"}
+                         ),
+                         {"role": "user", "content": query}
+                     ],
+            model=self.planning_model_name
+        )
+
+        choice = chat_response.choices[0]
+        message = choice.message
+
+        if message.content is not None and self.verbose:
+            print(format_robot(message.content))
+
+        return message.content
+
 
 def create_agent_executor(**kwargs):
     return Agent(**kwargs)
@@ -237,7 +270,7 @@ def execute_function_call(function, functions, verbose=False):
             else:
                 print(format_robot(function_name))
         try:
-            results = f(**kwargs)
+            return f(**kwargs)
         except SystemExit as e:
             raise SystemExit(e)
         except Exception as e:

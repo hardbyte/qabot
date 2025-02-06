@@ -1,6 +1,6 @@
 [project]
 name = "qabot"
-version = "0.6.1"
+version = "0.7.0"
 description = "Query local or remote data files with natural language queries powered by OpenAI and DuckDB."
 authors = [{name = "Brian Thorne", email = "brian@hardbyte.nz" }]
 readme = "README.md"
@@ -13,7 +13,7 @@ dependencies = [
     "pydantic >=2.5.3,<3.0",
     "pydantic-settings >=2.2,<3.0",
     "appdirs >=1.4.4,<2.0",
-    "duckdb >=1.0,<2.0"
+    "duckdb >=1.2,<2.0"
 ]
 
 requires-python = ">=3.11"

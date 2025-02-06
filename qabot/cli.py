@@ -25,6 +25,35 @@ warnings.filterwarnings("ignore")
 app = typer.Typer(pretty_exceptions_show_locals=False, pretty_exceptions_enable=False)
 
 
+def handle_db(agent, arg: str):
+    try:
+        result = agent.functions["execute_sql"](query=arg)
+        print(result)
+    except Exception as e:
+        print(f"[red]Error executing SQL: {e}[/red]")
+
+def handle_describe(agent, arg: str):
+    try:
+        result = agent.functions["describe_table"](table=arg)
+        print(format_duck(result))
+    except Exception as e:
+        print(f"[red]Error describing table: {e}[/red]")
+
+def handle_help(agent, arg: str):
+    print("Available commands:")
+    print("  /db <SQL>         Execute SQL directly on DuckDB")
+    print("  /help             Show this help message")
+    print("  /exit             Exit the CLI")
+    print("Anything else is sent to the LLM")
+
+
+# Create a command registry
+COMMAND_HANDLERS = {
+    "db": handle_db,
+    "help": handle_help,
+    "exit": lambda agent, arg: exit(0),
+}
+
 @app.command()
 def main(
     query: str = typer.Option(
@@ -118,7 +147,7 @@ def main(
         agent = Agent(
             database_engine=database_engine,
             verbose=verbose,
-            model_name=settings.QABOT_MODEL_NAME,
+            models=settings.agent_model,
             allow_wikidata=settings.QABOT_ENABLE_WIKIDATA and enable_wikidata,
             terminate_session_callback=terminate_session,
             clarification_callback=clarification
@@ -131,10 +160,34 @@ def main(
         progress.remove_task(t2)
 
         while True:
-            t = progress.add_task(description="Processing query...", total=None)
+            # Check if the input is a command (starts with "/")
+            if query.startswith('/'):
+                # Split command and arguments
+                parts = query.strip().split(maxsplit=1)
+                cmd = parts[0][1:]  # remove the leading '/'
+                arg = parts[1] if len(parts) > 1 else ''
+
+                handler = COMMAND_HANDLERS.get(cmd)
+                # Stop progress to ensure output displays correctly
+                progress.stop()
+                print()
+                if handler:
+                    handler(agent, arg)
+                else:
+                    print(f"[red]Unknown command: {cmd}[/red]")
+
+                print()
+                # Prompt for next input after a command and continue to next loop iteration
+                query = Prompt.ask(FOLLOW_UP_PROMPT)
+                if query.lower() in {'n', 'no', 'q', 'exit', 'quit'}:
+                    break
+                #progress.start()
+                continue
+
             print(format_rocket("Sending query to LLM"))
             print(format_user(query))
 
+            t = progress.add_task(description="Processing query...", total=None)
             result = agent(query)
 
             # Stop the progress before outputting result and prompting for any more input
