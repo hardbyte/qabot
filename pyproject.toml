@@ -1,6 +1,6 @@
 [project]
 name = "qabot"
-version = "0.7.0"
+version = "0.7.1"
 description = "Query local or remote data files with natural language queries powered by OpenAI and DuckDB."
 authors = [{name = "Brian Thorne", email = "brian@hardbyte.nz" }]
 readme = "README.md"
@@ -26,7 +26,7 @@ qabot = "qabot.cli:run"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["qabot"]
+include = ["qabot", "qabot.*"]
 exclude = ["data", "experiments"]
 
 
