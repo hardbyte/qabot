@@ -184,7 +184,7 @@ def main(
                 #progress.start()
                 continue
 
-            print(format_rocket("Sending query to LLM"))
+            print(format_rocket(f"Sending query to LLM ({settings.agent_model.default_model_name})"))
             print(format_user(query))
 
             t = progress.add_task(description="Processing query...", total=None)

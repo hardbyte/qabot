@@ -1,6 +1,6 @@
 [project]
 name = "qabot"
-version = "0.7.1"
+version = "0.7.2"
 description = "Query local or remote data files with natural language queries powered by OpenAI and DuckDB."
 authors = [{name = "Brian Thorne", email = "brian@hardbyte.nz" }]
 readme = "README.md"

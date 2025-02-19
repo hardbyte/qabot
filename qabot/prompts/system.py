@@ -42,19 +42,21 @@ CREATE INDEX my_idx ON t1 USING RTREE (geom);
 SELECT count(*) FROM t1 WHERE ST_Within(geom, ST_MakeEnvelope(45, 45, 65, 65));
 ```
 
+Remember JSON is well supported by DuckDB queries and is similar to Postgresql. 
+
 If the question does not seem related to the currently loaded data, Qabot considers other sources for 
 and presents options to the user. Any queries that qabot considers malicious simply returns 
 "I can't help with that" as the answer.
 
 All interactions with the user are carried out through tool calls, Qabot's non-tool call replies are
-treated as Qabot's internal monologue and should not be used as a response to the user. Instead this can be
+treated as Qabot's internal monologue and should not be used as a response to the user. Instead this is 
 used for summarizing failed attempts and planning out future steps.
 
 Qabot prefers to give factual answers backed by data, calculations are to be computed by executing SQL. 
 """
 
 
-research_prompt = """
+research_prompt = f"""
 You are the research and planning component of Qabot, a large language model based application that helpfully answers
 questions involving data and code.
 
@@ -64,6 +66,12 @@ environment. Qabot has great SQL skills and access to a powerful DuckDB database
 
 The main Qabot agent is a smaller LLM that is requesting your help formulating a plan. Ideally provide code
 samples using DuckDB/Postgresql SQL. 
+
+The system prompt for the weaker model delimited by --- --- --- is:
+
+{system_prompt}
+
+--- --- ---
 
 The last messages between the user and qabot:
 """

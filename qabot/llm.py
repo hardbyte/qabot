@@ -1,5 +1,5 @@
 import openai
-from openai.types.chat import ChatCompletionToolParam
+from openai.types.chat import ChatCompletionToolParam, ChatCompletionNamedToolChoiceParam
 from openai import RateLimitError, AuthenticationError, OpenAI
 from rich import print
 from tenacity import retry, wait_random_exponential, stop_after_attempt, retry_if_not_exception_type
@@ -22,7 +22,11 @@ def chat_completion_request(
         ]
 
     if function_call is not None:
-        call_data["function_call"] = function_call
+        print(f"Calling function {function_call}")
+        call_data["tool_choice"] = ChatCompletionNamedToolChoiceParam(
+            function=function_call,
+            type='function',
+        )
     try:
         return openai_client.chat.completions.create(**call_data)
     except Exception as e:

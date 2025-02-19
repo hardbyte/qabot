@@ -194,7 +194,7 @@ class Agent:
         choice = chat_response.choices[0]
         message = choice.message
         self.messages.append(message)
-        if "tool_calls" == choice.finish_reason:
+        if hasattr(message, "tool_calls") and message.tool_calls:
             for tool_call in message.tool_calls:
                 function_name = tool_call.function.name
                 call_id = tool_call.id

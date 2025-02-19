@@ -55,6 +55,13 @@ def import_into_duckdb_from_files(
             duckdb_connection.execute(f"ATTACH '{file_path}' as postgres_db {db_type};")
 
             _set_search_path(duckdb_connection)
+        elif file_path.endswith('.json'):
+            # use the filename as the table name
+            table_name, _ = os.path.splitext(os.path.basename(file_path))
+            # remove any non-alphanumeric characters
+            new_table_name = "".join([c for c in table_name if c.isalnum()])
+            duckdb_connection.execute(f"CREATE TABLE {new_table_name} AS select * from read_json('{file_path}');")
+            _set_search_path(duckdb_connection)
         elif file_path.endswith('.xlsx'):
             try:
                 duckdb_connection.sql("INSTALL spatial;")
